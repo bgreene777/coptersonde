@@ -26,11 +26,7 @@ import wxtools
 ## Version ##
 #############
 '''
-<<<<<<< HEAD
-Updated 20 Sep 2017
-=======
 Updated 27 Sep 2017
->>>>>>> brian
 Brian Greene
 University of Oklahoma
 For use with raw OU Coptersonde vertical profile data
