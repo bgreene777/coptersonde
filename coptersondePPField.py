@@ -622,6 +622,7 @@ else:
     umeso = mesoData[4, iMesoTime]
     vmeso = mesoData[5, iMesoTime]
     pmeso = mesoData[6, iMesoTime]
+    Td2meso = np.array(mcalc.dewpoint_rh(T2meso * units.degC, RHmeso / 100.))
 
 ######################
 ## Create SkewTLogP ##
@@ -640,6 +641,7 @@ skew.plot_barbs(pres[0::4], u[0::4], v[0::4], x_clip_radius = 0.12, \
 # Plot mesonet surface data and winds
 skew.plot(pmeso, T2meso, 'k*', linewidth=2)
 skew.plot(pres[0], T9meso, 'r*', linewidth=2)
+skew.plot(pmeso, Td2meso, 'g*', linewidth=2)
 skew.plot_barbs(pmeso, umeso, vmeso, barbcolor='r')
 
 # Plot convective parameters
