@@ -35,7 +35,7 @@ Written for Windows 10
 #################
 
 # PC User name
-user = 'Brian'
+user = os.getenv('username')
 # location of raw .csv and .pos files
 dataDirName = 'C:\\Users\\%s\\Desktop\\EPIC\\Solutions\\' % user
 # location of mesonet location csv
