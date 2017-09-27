@@ -26,7 +26,6 @@ import wxtools
 ## Version ##
 #############
 '''
-I looooove git
 Updated 27 Sep 2017
 Brian Greene
 University of Oklahoma
