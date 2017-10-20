@@ -242,7 +242,7 @@ ax = figure(1);
 ax.Position = [500 500 1400 700];
 yyaxis left
 hold on
-h1 = plot(tCopRaw, T1rawrun, 'DisplayName', 'iMet Sensor 1');
+%h1 = plot(tCopRaw, T1rawrun, 'DisplayName', 'iMet Sensor 1');
 h2 = plot(tCopRaw, T2rawrun, 'Color', 'g', 'LineStyle', '-', 'DisplayName', 'iMet Sensor 2');
 h3 = plot(mmtime(imm), mmTuav(imm), 'Color', 'r', 'LineStyle', '-', 'DisplayName', 'NSSL Tfast');
 h4 = plot(mmtime(imm), mmTenv(imm), 'Color', 'k', 'LineStyle', '-', 'DisplayName', 'NSSL Background Temperature');
@@ -282,7 +282,7 @@ if testNum == 2
     yyaxis right
     hold on
     h5 = plot(tWind, speed, 'DisplayName', 'Wind Speed');
-    h6 = plot(tMot, xMot, 'DisplayName', 'Position', 'Color', 'k', 'LineStyle', '-');
+    %h6 = plot(tMot, xMot, 'DisplayName', 'Position', 'Color', 'k', 'LineStyle', '-');
     hold off
     ylim([0 10])
     ylabel('Wind Speed (m/s) & Position (in)', 'FontSize', 14)
@@ -306,7 +306,7 @@ title(sprintf('Coptersonde Sensor Placement Experiment %d', testNum), 'FontSize'
 grid on
 
 if testNum == 2
-    legend([h1 h2 h3 h4 h5 h6],'Location', 'northwest')
+    legend([h2 h3 h4 h5],'Location', 'northwest')
 elseif testNum == 3
     legend([h1 h2 h3 h4 h6], 'Location', 'northwest')
 end

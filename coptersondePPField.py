@@ -26,7 +26,7 @@ import wxtools
 ## Version ##
 #############
 '''
-Updated 27 Sep 2017
+Updated 6 Oct 2017
 Brian Greene
 University of Oklahoma
 For use with raw OU Coptersonde vertical profile data
@@ -268,19 +268,15 @@ Direction_deg[iNeg] = Direction_deg[iNeg] + 360.
 ## Automatically Determine Starting Time ##
 ###########################################
 
-updown = raw_input('>>>Enter 1 for ascent, 2 for descent, 3 for both: ')
+updown = raw_input('>>>Enter 1 for ascent or 2 for descent: ')
 if updown == '1':
     profup = 1
     profdown = 0
-    print 'Processing data for ascent'
+    print 'Selected: ascent'
 elif updown == '2':
     profup = 0
     profdown = 1
-    print 'Processing data for descent'
-elif updown == '3':
-    profup = 1
-    profdown = 1
-    print 'Processing data for ascent and descent'
+    print 'Selected: descent'
 else:
     print 'uhhhhh'
 
@@ -609,6 +605,7 @@ if mesoData.size == 0:
     umeso = np.nan
     vmeso = np.nan
     pmeso = np.nan
+    Td2meso = np.nan
 else:
     print 'Internet connection successful! Pulling Mesonet data...'
     iMesoTime = wxtools.findClosestMesoTime(timeTakeoff)
@@ -639,10 +636,12 @@ skew.plot_barbs(pres[0::4], u[0::4], v[0::4], x_clip_radius = 0.12, \
     y_clip_radius = 0.12)
 
 # Plot mesonet surface data and winds
-skew.plot(pmeso, T2meso, 'k*', linewidth=2)
-skew.plot(pres[0], T9meso, 'r*', linewidth=2)
-skew.plot(pmeso, Td2meso, 'g*', linewidth=2)
+skew.plot(pmeso, T2meso, 'k*', linewidth=2, label='Mesonet 2m T')
+skew.plot(pres[0], T9meso, 'r*', linewidth=2, label='Mesonet 9m T')
+skew.plot(pmeso, Td2meso, 'g*', linewidth=2, label='Mesonet 2m Td')
 skew.plot_barbs(pmeso, umeso, vmeso, barbcolor='r')
+
+plt.legend(loc=4)
 
 # Plot convective parameters
 if isRH:
@@ -713,7 +712,7 @@ if isRH:
     # Convective parameter values
     ax_data = fig5.add_subplot(gs[3, 2])
     plt.axis('off')
-    datastr = 'LCL = %.0f hPa\nSBCAPE = %.0f J kg$^{-1}$\n0-%.0f m bulk shear\n\
+    datastr = 'LCL = %.0f hPa\nFake News CAPE = %.0f J kg$^{-1}$\n0-%.0f m bulk shear\n\
         = %.0f kts' % \
         (lclpres.magnitude, SBCAPE.magnitude, sampleHeights_m[-3], bulkshear)
     boxprops = dict(boxstyle='round', facecolor='none')
@@ -786,3 +785,11 @@ while q != '':
 
 plt.close('all')
 print 'Post Processing Complete.'
+print '               ___________                   '
+print '              /    O      \\                 '
+print '<====>       /      U      \\       <====>   '
+print '  []________/_______________\\________[]     '
+print '           ||---------------||               '
+print '           ||               ||               '
+print '           ||               ||               '
+

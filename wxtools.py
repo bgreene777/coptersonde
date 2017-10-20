@@ -417,13 +417,15 @@ def parcelUAV(T, Td, p):
 	return lclpres, lcltemp, isbelowlcl, prof
 
 
-def plotUAVskewT(filenamecsv):
+def plotUAVskewT(filenamecsv, filename2=''):
 	'''
 	Input filepath of post-processed uav data
+	Optionally enter filename of 2nd csv
 
 	Outputs Skew-T log-p plot of UAV data, includes hodograph and some
 	convective parameters
 	'''
+	# File 1
 	copdata = csvread_copter(filenamecsv)
 	lat = copdata[0]
 	lon = copdata[1]
@@ -451,6 +453,23 @@ def plotUAVskewT(filenamecsv):
 	else: 
 		moist = 1
 
+	# File 2
+	if len(filename2) > 0:
+		copdata2 = csvread_copter(filename2)
+		p2 = copdata2[3]
+		T2 = copdata2[4]
+		Td2 = copdata2[5]
+		spd2 = copdata2[9]
+		spd_kts2 = spd2 * 1.94
+		dir2 = copdata2[10]
+		u2, v2 = mcalc.get_wind_components(spd_kts2*units.kts, 
+			dir2 * units.deg)
+		u2 = u2.to(units.kts)
+		v2 = v2.to(units.kts)
+	else:
+		p2, T2, Td2, Td2, spd2, spd_kts2, dir2, u2, v2 = ([] for i in range(9))
+
+
 
 	print 'Plotting...'
 	fignum = plt.figure(figsize=(12,9))
@@ -461,6 +480,12 @@ def plotUAVskewT(filenamecsv):
 	skew.plot(pressure, dewpoint, 'g', linewidth = 2)
 	skew.plot_barbs(pressure[0::4], u[0::4], v[0::4], x_clip_radius = 0.12, \
 	    y_clip_radius = 0.12)
+
+	# Plot file 2
+	if len(filename2) > 0:
+		skew.plot(p2, T2, 'r', linewidth=2, alpha=0.5)
+		skew.plot(p2, Td2, 'g', linewidth=2, alpha=0.5)
+		skew.plot_barbs(p2[0::4], u2[0::4], v2[0::4], barbcolor='r')
 
 	# Plot convective parameters
 	if moist:
@@ -474,13 +499,11 @@ def plotUAVskewT(filenamecsv):
 		isbelowlcl = 0
 
 	# set up plot limits and labels - use LCL as max if higher than profile
-	# if moist:
-	#     xmin = math.floor(np.nanmin(dewpoint)) + 2
-	# else:
-	#     xmin = math.floor(np.nanmin(temperature))
-	# xmax = math.floor(np.nanmax(temperature)) + 20
-	xmin = 0.
-	xmax = 50.
+	if moist:
+		xmin = math.floor(np.nanmin(dewpoint))
+	else:
+	    xmin = math.floor(np.nanmin(temperature))
+	xmax = math.floor(np.nanmax(temperature)) + 20
 	if isbelowlcl:
 	    ymin = round((plcl / units.mbar), -1) - 10
 	else:
