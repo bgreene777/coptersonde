@@ -246,7 +246,7 @@ for j in range(nVals):
     Rx = np.matrix( [[1,0,0], [0,crol,srol], [0,-srol,crol]] )
     Ry = np.matrix( [[cpit,0,-spit], [0,1,0], [spit,0,cpit]] )
     Rz = np.matrix( [[cyaw,-syaw,0], [syaw,cyaw,0], [0,0,1]] )
-    R = Rx * Ry * Rz
+    R = Rz * Ry * Rx
 
     psi_deg[j] = np.arccos(R[2,2]) * 180./np.pi
     az_deg[j] = np.arctan2(R[1,2],R[0,2]) * 180./np.pi
@@ -614,8 +614,8 @@ else:
     RHmeso = mesoData[1, iMesoTime]
     T2meso = mesoData[2, iMesoTime]
     T9meso = mesoData[3, iMesoTime]
-    umeso = mesoData[4, iMesoTime]
-    vmeso = mesoData[5, iMesoTime]
+    umeso = mesoData[4, iMesoTime] * units.kts
+    vmeso = mesoData[5, iMesoTime] * units.kts
     pmeso = mesoData[6, iMesoTime]
     Td2meso = np.array(mcalc.dewpoint_rh(T2meso * units.degC, RHmeso / 100.))
 
