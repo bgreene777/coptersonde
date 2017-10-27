@@ -26,7 +26,7 @@ import wxtools
 ## Version ##
 #############
 '''
-Updated 6 Oct 2017
+Updated 25 Oct 2017
 Brian Greene
 University of Oklahoma
 For use with raw OU Coptersonde vertical profile data
@@ -51,7 +51,7 @@ dataDirName = myNextcloud + 'data/PBL Transition/'
 # location of mesonet location csv
 mesocsv = myNextcloud + 'documentation/Mesonet/geoinfo.csv'
 # location of Logos.png
-logoName = myNextcloud + 'documentation/Logos.png'
+logoName = myNextcloud + 'documentation/LogosHorizLores.png'
 # location to save csv output
 folderSaveFile = '/Users/briangreene/Documents/Coptersonde/KAEFS/Data/'
 # location to save png output
@@ -626,8 +626,8 @@ else:
 ######################
 
 print 'Plotting...'
-fig5 = plt.figure(figsize=(12,9))
-gs = gridspec.GridSpec(4, 4)
+fig5 = plt.figure(figsize=(12,10.67))
+gs = gridspec.GridSpec(5, 4)
 skew = SkewT(fig5, rotation=20, subplot=gs[:, :2])
 
 skew.plot(pres, Tmean, 'r', linewidth = 2)
@@ -636,12 +636,12 @@ skew.plot_barbs(pres[0::4], u[0::4], v[0::4], x_clip_radius = 0.12, \
     y_clip_radius = 0.12)
 
 # Plot mesonet surface data and winds
-skew.plot(pmeso, T2meso, 'k*', linewidth=2, label='Mesonet 2m T')
-skew.plot(pres[0], T9meso, 'r*', linewidth=2, label='Mesonet 9m T')
-skew.plot(pmeso, Td2meso, 'g*', linewidth=2, label='Mesonet 2m Td')
-skew.plot_barbs(pmeso, umeso, vmeso, barbcolor='r')
+skew.plot(pmeso, T2meso, 'k*', linewidth=2, label='Mesonet 2 m T')
+skew.plot(pres[0], T9meso, 'r*', linewidth=2, label='Mesonet 9 m T')
+skew.plot(pmeso, Td2meso, 'g*', linewidth=2, label='Mesonet 2 m Td')
+skew.plot_barbs(pmeso, umeso, vmeso, barbcolor='r', label='Mesonet 10 m Wind')
 
-plt.legend(loc=4)
+hand, lab = skew.ax.get_legend_handles_labels()
 
 # Plot convective parameters
 if isRH:
@@ -710,16 +710,21 @@ plt.text(x+40000, y-5000, sitelong, bbox=dict(facecolor='yellow', alpha=0.5))
 
 if isRH:
     # Convective parameter values
-    ax_data = fig5.add_subplot(gs[3, 2])
+    ax_data = fig5.add_subplot(gs[3, 2:])
     plt.axis('off')
-    datastr = 'LCL = %.0f hPa\nFake News CAPE = %.0f J kg$^{-1}$\n0-%.0f m bulk shear\n\
-        = %.0f kts' % \
-        (lclpres.magnitude, SBCAPE.magnitude, sampleHeights_m[-3], bulkshear)
+    datastr = ('LCL: %.0f hPa, %.0f$^\circ$C\n' + \
+        'Parcel Buoyancy: %.0f J kg$^{-1}$\n' + \
+        '0-%.0f m bulk shear: %.0f kts\n' + \
+        '10 m T: %.0f$^\circ$C, Td: %.0f$^\circ$C') % \
+        (lclpres.magnitude, lcltemp.magnitude,SBCAPE.magnitude, 
+            sampleHeights_m[-3], bulkshear, Tmean[0], Td[0])
     boxprops = dict(boxstyle='round', facecolor='none')
-    ax_data.text(0.05, 0.95, datastr, transform=ax_data.transAxes, fontsize=14,
-        verticalalignment='top', bbox=boxprops)
+    ax_data.text(0.5, 0.95, datastr, transform=ax_data.transAxes, fontsize=14,
+        va='top', ha='center', bbox=boxprops)
+    ax_data.legend(hand, lab, loc='upper center', 
+        bbox_to_anchor=(0.5, 0.2), ncol=2, frameon=False)
     # Logos
-    ax_png = fig5.add_subplot(gs[3, 3])
+    ax_png = fig5.add_subplot(gs[4, 2:])
     img = mpimg.imread(logoName)
     plt.axis('off')
     plt.imshow(img)
