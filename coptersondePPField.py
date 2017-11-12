@@ -362,6 +362,35 @@ if profdown:
 
     plt.show(block=False)
 
+#########################
+## Import Mesonet Data ##
+#########################
+mesoData = wxtools.getMesoData(timeTakeoff.year, timeTakeoff.month,
+    timeTakeoff.day, sitename)
+if mesoData.size == 0:
+    print 'No internet connection detected.'
+    RHmeso = np.nan
+    T2meso = np.nan
+    T9meso = np.nan
+    umeso = np.nan
+    vmeso = np.nan
+    pmeso = np.nan
+    Td2meso = np.nan
+else:
+    print 'Internet connection successful! Pulling Mesonet data...'
+    iMesoTime = wxtools.findClosestMesoTime(timeTakeoff)
+    dtmeso = mesoData[0, iMesoTime]
+    dtmeso = datetime(timeTakeoff.year, timeTakeoff.month, timeTakeoff.day) + \
+        timedelta(minutes=dtmeso)
+    tmeso = mpdates.date2num(dtmeso)
+
+    RHmeso = mesoData[1, iMesoTime]
+    T2meso = mesoData[2, iMesoTime]
+    T9meso = mesoData[3, iMesoTime]
+    umeso = mesoData[4, iMesoTime]
+    vmeso = mesoData[5, iMesoTime]
+    pmeso = mesoData[6, iMesoTime]
+    Td2meso = np.array(mcalc.dewpoint_rh(T2meso * units.degC, RHmeso / 100.))
 
 #################################################
 ## Find indices for coptersonde and dgps files ##
@@ -404,23 +433,27 @@ if profdown:
 ## Plot filtered data in chosen Domain ##
 #########################################
 
-fig4, axarr = plt.subplots(2, sharex=True)
+fig4, axarr = plt.subplots(2, sharex=True, figsize=(8,8))
 axarr[0].plot(t_copter[indCopter], T1[indCopter], label='T1')
 axarr[0].plot(t_copter[indCopter], T2[indCopter], label='T2')
 axarr[0].plot(t_copter[indCopter], T3[indCopter], label='T3')
 axarr[0].plot(t_copter[indCopter], T4[indCopter], label='T4')
+axarr[0].plot(tmeso, T9meso, 'r*', linewidth=2, label='Mesonet 9m T')
 axarr[0].set_title('Temperature Median Filtered')
 axarr[0].xaxis.set_major_locator(mpdates.MinuteLocator(interval=1))
 axarr[0].xaxis.set_major_formatter(mpdates.DateFormatter('%H:%M'))
+axarr[0].grid()
 axarr[0].legend(loc=0)
 
 axarr[1].plot(t_copter[indCopter], RH1[indCopter], label='RH1')
 axarr[1].plot(t_copter[indCopter], RH2[indCopter], label='RH2')
 axarr[1].plot(t_copter[indCopter], RH3[indCopter], label='RH3')
 axarr[1].plot(t_copter[indCopter], RH4[indCopter], label='RH4')
+axarr[1].plot(tmeso, RHmeso, 'g*', linewidth=2, label='Mesonet 2m RH')
 axarr[1].set_title('RH Median Filtered')
 axarr[1].xaxis.set_major_locator(mpdates.MinuteLocator(interval=1))
 axarr[1].xaxis.set_major_formatter(mpdates.DateFormatter('%H:%M'))
+axarr[1].grid()
 axarr[1].legend(loc=0)
 
 plt.show(block=False)
@@ -591,35 +624,6 @@ else:
 # Wind shear
 bulkshear = wind_kts[-3] - wind_kts[0]
 print '0-%d m Bulk Shear: %.0f kts' % (sampleHeights_m[-3], bulkshear)
-
-#########################
-## Import Mesonet Data ##
-#########################
-mesoData = wxtools.getMesoData(timeTakeoff.year, timeTakeoff.month,
-    timeTakeoff.day, sitename)
-if mesoData.size == 0:
-    print 'No internet connection detected.'
-    RHmeso = np.nan
-    T2meso = np.nan
-    T9meso = np.nan
-    umeso = np.nan
-    vmeso = np.nan
-    pmeso = np.nan
-    Td2meso = np.nan
-else:
-    print 'Internet connection successful! Pulling Mesonet data...'
-    iMesoTime = wxtools.findClosestMesoTime(timeTakeoff)
-    tmeso = mesoData[0, iMesoTime]
-    tmeso = datetime(timeTakeoff.year, timeTakeoff.month, timeTakeoff.day) + \
-        timedelta(minutes=tmeso)
-
-    RHmeso = mesoData[1, iMesoTime]
-    T2meso = mesoData[2, iMesoTime]
-    T9meso = mesoData[3, iMesoTime]
-    umeso = mesoData[4, iMesoTime]
-    vmeso = mesoData[5, iMesoTime]
-    pmeso = mesoData[6, iMesoTime]
-    Td2meso = np.array(mcalc.dewpoint_rh(T2meso * units.degC, RHmeso / 100.))
 
 ######################
 ## Create SkewTLogP ##
