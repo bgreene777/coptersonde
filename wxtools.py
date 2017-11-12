@@ -24,7 +24,7 @@ import pytz
 ## Version ##
 #############
 '''
-Updated 14 September 2017
+Updated 11 November 2017
 Brian Greene
 University of Oklahoma
 Various subroutines for use with OU Coptersonde to atuomate calculations
