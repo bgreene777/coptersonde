@@ -14,6 +14,9 @@ from scipy.interpolate import interp1d
 from datetime import datetime, timedelta
 import Tkinter
 from tkFileDialog import askdirectory
+from metpy.constants import dry_air_gas_constant as Rd
+from metpy.constants import water_heat_vaporization as Lv
+from metpy.constants import dry_air_spec_heat_press as cp
 import warnings
 
 ## Required pacakges & files: cmocean
@@ -29,6 +32,10 @@ warnings.filterwarnings("ignore",
 warnings.filterwarnings("ignore",
 	".*invalid value encountered in true_divide.*")
 
+# Constants
+Rd = 1000. * Rd.magnitude
+Lv = Lv.magnitude
+cp = cp.magnitude
 
 # Select directory
 root = Tkinter.Tk()
@@ -123,7 +130,7 @@ for fname in fnameArr:
     #lat[:sz, count] = latitude
     #lon[:sz, count] = longitude
     alt[:sz, count] = altitude
-    p[:sz, count] = altitude
+    p[:sz, count] = pressure
     T[:sz, count] = temp
     Td[:sz, count] = dew
     RH[:sz, count] = rh
@@ -150,10 +157,10 @@ for fname in fnameArr:
 
     count += 1
 
-## Set up plotting parameters
-# Dimensions
+
+## Set up Dimensions
 time_list = [i.strftime('%H:%M:%S') for i in time]
-title_today = time[0].strftime('%d %b %Y') + ' ' +dataDirName[-4:]
+title_today = time[0].strftime('%d %b %Y') + ' ' + dataDirName
 maxHeight = max(numHeightsArr)
 
 numInterp = 1.
@@ -163,6 +170,35 @@ heights = 10. * np.arange(0, nHeights)
 dt = mpdates.date2num(time)
 dt_interp = mpdates.drange(time[0], time[-1], timedelta(seconds=delta_t))
 
+## Calculate sensible and latent heat fluxes
+dh = 10. # m
+
+delta_t = np.array([(time[i] - time[i-1]).total_seconds() 
+	for i in np.arange(1, len(dt))])
+
+delta_theta = np.full((nHeights, numfiles-1), np.nan)
+delta_q = np.full((nHeights, numfiles-1), np.nan)
+H = np.full((nHeights, numfiles), np.nan)
+F = np.full((nHeights, numfiles), np.nan)
+rho = np.full((nHeights, numfiles), np.nan)
+q = np.full((nHeights, numfiles), np.nan)
+
+for j in np.arange(numfiles):
+	for i in np.arange(nHeights):
+		rho[i, j] = 100. * p[i, j] / (Rd * (T[i, j] + 273.15))
+		q[i, j] = w[i, j] / (1. + w[i, j])
+
+for j in np.arange(1, numfiles):
+	for i in np.arange(nHeights):
+		delta_theta[i-1, j-1] = theta[i, j] - theta[i, j-1]
+		delta_q[i-1, j-1] = q[i, j] - q[i, j-1]
+
+for j in np.arange(1, numfiles):
+	for i in np.arange(1, nHeights):
+		H[i, j] = cp * rho[i, j] * dh * delta_theta[i-1, j-1] / delta_t[j-1]
+		F[i, j] = Lv * rho[i, j] * dh * delta_q[i-1, j-1] / delta_t[j-1]
+
+## Set up plotting parameters
 # Meshgrid for barbs
 t_barbs = int(10. / numInterp)
 xx, yy = np.meshgrid(dt_interp[0::t_barbs], heights[0::4])
@@ -315,6 +351,24 @@ plt.xlabel('Time UTC')
 plt.ylabel('Altitude AGL (m)')
 plt.title('Wind Speed (kts) and Direction ' + title_today)
 [plt.axvline(t, linestyle='--', color='r') for t in dt]
+
+# Sensible heat flux
+fig7, ax7 = plt.subplots(1, figsize=(8,8))
+plt.xlabel('Sensible Heat Flux (W m$^{-2}$)')
+plt.ylabel('Altitude AGL (m)')
+plt.title('Sensible Heat Flux Evolution')
+[plt.plot(H[:, iplot], alt[:, iplot], label=time_list[iplot]) 
+	for iplot in np.arange(1, numfiles)]
+ax7.legend()
+
+# Latent heat flux
+fig8, ax8 = plt.subplots(1, figsize=(8,8))
+plt.xlabel('Latent Heat Flux (W m$^{-2}$)')
+plt.ylabel('Altitude AGL (m)')
+plt.title('Latent Heat Flux Evolution')
+[plt.plot(F[:, iplot], alt[:, iplot], label=time_list[iplot]) 
+	for iplot in np.arange(1, numfiles)]
+ax8.legend()
 
 plt.show(block=False)
 
