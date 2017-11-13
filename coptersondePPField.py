@@ -5,7 +5,7 @@ import matplotlib.image as mpimg
 import matplotlib.gridspec as gridspec
 import matplotlib.dates as mpdates
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-from mpl_toolkits.basemap import Basemap
+#from mpl_toolkits.basemap import Basemap
 import numpy as np
 import csv
 import math
@@ -26,7 +26,7 @@ import wxtools
 ## Version ##
 #############
 '''
-Updated 25 Oct 2017
+Updated 11 November 2017
 Brian Greene
 University of Oklahoma
 For use with raw OU Coptersonde vertical profile data
@@ -362,6 +362,42 @@ if profdown:
 
     plt.show(block=False)
 
+#########################
+## Import Mesonet Data ##
+#########################
+mesoData = wxtools.getMesoData(timeTakeoff.year, timeTakeoff.month,
+    timeTakeoff.day, sitename)
+if mesoData.size == 0:
+    print 'No internet connection detected.'
+    RHmeso = np.nan
+    T2meso = np.nan
+    T9meso = np.nan
+    umeso = np.nan
+    vmeso = np.nan
+    pmeso = np.nan
+    Td2meso = np.nan
+    sradmeso = np.nan
+else:
+    print 'Internet connection successful! Pulling Mesonet data...'
+    iMesoTime = wxtools.findClosestMesoTime(timeTakeoff)
+    minutes_meso = mesoData[0, iMesoTime]
+    dtmeso = datetime(timeTakeoff.year, timeTakeoff.month, timeTakeoff.day) + \
+        timedelta(minutes=minutes_meso)
+    tmeso = mpdates.date2num(dtmeso)
+    minutes_meso_long = mesoData[0, :iMesoTime+1]
+    dtmeso_long = [datetime(timeTakeoff.year, timeTakeoff.month, 
+        timeTakeoff.day) + timedelta(minutes=iminutes)
+        for iminutes in minutes_meso_long]
+    tlongmeso = [mpdates.date2num(itime) for itime in dtmeso_long]
+
+    RHmeso = mesoData[1, iMesoTime]
+    T2meso = mesoData[2, iMesoTime]
+    T9meso = mesoData[3, iMesoTime]
+    umeso = mesoData[4, iMesoTime]
+    vmeso = mesoData[5, iMesoTime]
+    pmeso = mesoData[6, iMesoTime]
+    sradmeso = mesoData[7, :iMesoTime+1]
+    Td2meso = np.array(mcalc.dewpoint_rh(T2meso * units.degC, RHmeso / 100.))
 
 #################################################
 ## Find indices for coptersonde and dgps files ##
@@ -404,23 +440,27 @@ if profdown:
 ## Plot filtered data in chosen Domain ##
 #########################################
 
-fig4, axarr = plt.subplots(2, sharex=True)
+fig4, axarr = plt.subplots(2, sharex=True, figsize=(8,8))
 axarr[0].plot(t_copter[indCopter], T1[indCopter], label='T1')
 axarr[0].plot(t_copter[indCopter], T2[indCopter], label='T2')
 axarr[0].plot(t_copter[indCopter], T3[indCopter], label='T3')
 axarr[0].plot(t_copter[indCopter], T4[indCopter], label='T4')
+axarr[0].plot(tmeso, T9meso, 'r*', linewidth=2, label='Mesonet 9m T')
 axarr[0].set_title('Temperature Median Filtered')
 axarr[0].xaxis.set_major_locator(mpdates.MinuteLocator(interval=1))
 axarr[0].xaxis.set_major_formatter(mpdates.DateFormatter('%H:%M'))
+axarr[0].grid()
 axarr[0].legend(loc=0)
 
 axarr[1].plot(t_copter[indCopter], RH1[indCopter], label='RH1')
 axarr[1].plot(t_copter[indCopter], RH2[indCopter], label='RH2')
 axarr[1].plot(t_copter[indCopter], RH3[indCopter], label='RH3')
 axarr[1].plot(t_copter[indCopter], RH4[indCopter], label='RH4')
+axarr[1].plot(tmeso, RHmeso, 'g*', linewidth=2, label='Mesonet 2m RH')
 axarr[1].set_title('RH Median Filtered')
 axarr[1].xaxis.set_major_locator(mpdates.MinuteLocator(interval=1))
 axarr[1].xaxis.set_major_formatter(mpdates.DateFormatter('%H:%M'))
+axarr[1].grid()
 axarr[1].legend(loc=0)
 
 plt.show(block=False)
@@ -592,41 +632,12 @@ else:
 bulkshear = wind_kts[-3] - wind_kts[0]
 print '0-%d m Bulk Shear: %.0f kts' % (sampleHeights_m[-3], bulkshear)
 
-#########################
-## Import Mesonet Data ##
-#########################
-mesoData = wxtools.getMesoData(timeTakeoff.year, timeTakeoff.month,
-    timeTakeoff.day, sitename)
-if mesoData.size == 0:
-    print 'No internet connection detected.'
-    RHmeso = np.nan
-    T2meso = np.nan
-    T9meso = np.nan
-    umeso = np.nan
-    vmeso = np.nan
-    pmeso = np.nan
-    Td2meso = np.nan
-else:
-    print 'Internet connection successful! Pulling Mesonet data...'
-    iMesoTime = wxtools.findClosestMesoTime(timeTakeoff)
-    tmeso = mesoData[0, iMesoTime]
-    tmeso = datetime(timeTakeoff.year, timeTakeoff.month, timeTakeoff.day) + \
-        timedelta(minutes=tmeso)
-
-    RHmeso = mesoData[1, iMesoTime]
-    T2meso = mesoData[2, iMesoTime]
-    T9meso = mesoData[3, iMesoTime]
-    umeso = mesoData[4, iMesoTime]
-    vmeso = mesoData[5, iMesoTime]
-    pmeso = mesoData[6, iMesoTime]
-    Td2meso = np.array(mcalc.dewpoint_rh(T2meso * units.degC, RHmeso / 100.))
-
 ######################
 ## Create SkewTLogP ##
 ######################
 
 print 'Plotting...'
-fig5 = plt.figure(figsize=(12,10.67))
+fig5 = plt.figure(figsize=(10.125,9))
 gs = gridspec.GridSpec(5, 4)
 skew = SkewT(fig5, rotation=20, subplot=gs[:, :2])
 
@@ -690,23 +701,32 @@ ax_hod.set_title('Hodograph (kts)')
 ax_hod.yaxis.set_ticklabels([])
 #ax_hod.set_xlabel('Wind Speed (kts)')
 
-# Map - Oklahoma
-llcrnrlat = 33.6
-urcrnrlat = 37.2
-llcrnrlon = -103.2
-urcrnrlon = -94.2
-ax_map = fig5.add_subplot(gs[2, 2:])
+# # Map - Oklahoma
+# llcrnrlat = 33.6
+# urcrnrlat = 37.2
+# llcrnrlon = -103.2
+# urcrnrlon = -94.2
+# ax_map = fig5.add_subplot(gs[2, 2:])
 
-m = Basemap(projection='merc', llcrnrlat=llcrnrlat, urcrnrlat=urcrnrlat, 
-    llcrnrlon=llcrnrlon,urcrnrlon=urcrnrlon, lat_ts=20, resolution='l',
-    ax=ax_map)
+# m = Basemap(projection='merc', llcrnrlat=llcrnrlat, urcrnrlat=urcrnrlat, 
+#     llcrnrlon=llcrnrlon,urcrnrlon=urcrnrlon, lat_ts=20, resolution='l',
+#     ax=ax_map)
 
-print 'Basemap...'
-m.drawcounties()
-m.drawstates()
-x,y = m(lon[0], lat[0])
-plt.plot(x,y,'b.')
-plt.text(x+40000, y-5000, sitelong, bbox=dict(facecolor='yellow', alpha=0.5))
+# print 'Basemap...'
+# m.drawcounties()
+# m.drawstates()
+# x,y = m(lon[0], lat[0])
+# plt.plot(x,y,'b.')
+# plt.text(x+40000, y-5000, sitelong, bbox=dict(facecolor='yellow', alpha=0.5))
+
+# Solar radiation meteogram
+ax_rad = fig5.add_subplot(gs[2, 2:])
+plt.plot(tlongmeso[143:], sradmeso[143:], label='Solar Radiation (W m$^{-2}$)')
+plt.plot(tmeso, sradmeso[-1], 'r.', linewidth=2)
+ax_rad.xaxis.set_major_locator(mpdates.MinuteLocator(interval=60))
+ax_rad.xaxis.set_major_formatter(mpdates.DateFormatter('%H:%M'))
+ax_rad.yaxis.tick_right()
+ax_rad.legend(loc=0)
 
 if isRH:
     # Convective parameter values
@@ -721,8 +741,8 @@ if isRH:
     boxprops = dict(boxstyle='round', facecolor='none')
     ax_data.text(0.5, 0.95, datastr, transform=ax_data.transAxes, fontsize=14,
         va='top', ha='center', bbox=boxprops)
-    ax_data.legend(hand, lab, loc='upper center', 
-        bbox_to_anchor=(0.5, 0.2), ncol=2, frameon=False)
+    ax_data.legend(hand, lab, loc='upper center', \
+        bbox_to_anchor=(0.5, 0.15), ncol=2, frameon=False)
     # Logos
     ax_png = fig5.add_subplot(gs[4, 2:])
     img = mpimg.imread(logoName)
