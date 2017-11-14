@@ -213,6 +213,9 @@ for j in np.arange(0, numfiles):
 		F[i, j] = np.nansum(F0[i:, j])
 
 ## Set up plotting parameters
+# Alpha levels
+alpha = np.linspace(0.1, 1, num=numfiles)
+
 # Meshgrid for barbs
 t_barbs = int(10. / numInterp)
 xx, yy = np.meshgrid(dt_interp[0::t_barbs], heights[0::4])
@@ -371,7 +374,8 @@ fig7, ax7 = plt.subplots(1, figsize=(8,8))
 plt.xlabel('Sensible Heat Flux (W m$^{-2}$)')
 plt.ylabel('Altitude AGL (m)')
 plt.title('Sensible Heat Flux Evolution')
-[plt.plot(H[:, iplot], alt[:, iplot], label=time_list[iplot]) 
+[plt.plot(H[:, iplot], alt[:, iplot], label=time_list[iplot],
+	color=(1, 0, 0, alpha[iplot])) 
 	for iplot in np.arange(1, numfiles)]
 ax7.legend()
 
@@ -380,7 +384,8 @@ fig8, ax8 = plt.subplots(1, figsize=(8,8))
 plt.xlabel('Latent Heat Flux (W m$^{-2}$)')
 plt.ylabel('Altitude AGL (m)')
 plt.title('Latent Heat Flux Evolution')
-[plt.plot(F[:, iplot], alt[:, iplot], label=time_list[iplot]) 
+[plt.plot(F[:, iplot], alt[:, iplot], label=time_list[iplot],
+	color=(0, 0, 1, alpha[iplot])) 
 	for iplot in np.arange(1, numfiles)]
 ax8.legend()
 
