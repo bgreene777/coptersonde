@@ -35,7 +35,7 @@ warnings.filterwarnings("ignore",
 # Constants
 Rd = 1000. * Rd.magnitude
 Lv = Lv.magnitude
-cp = cp.magnitude
+cp = float(cp.magnitude)
 
 # Select directory
 root = Tkinter.Tk()
@@ -118,7 +118,8 @@ for fname in fnameArr:
     	temp.append(float(line['T(C)']))
     	dew.append(float(line['Td(C)']))
     	rh.append(float(line['RH(percent)']))
-    	mix.append(float(line['w(gKg-1)']))
+    	# want w in kg kg-1
+    	mix.append(float(line['w(gKg-1)'])/1000.)
     	pottemp.append(float(line['Theta(K)']))
     	spd.append(float(line['Speed(ms-1)']))
     	wind.append(float(line['Dir(deg)']))
@@ -173,30 +174,43 @@ dt_interp = mpdates.drange(time[0], time[-1], timedelta(seconds=delta_t))
 ## Calculate sensible and latent heat fluxes
 dh = 10. # m
 
+# time intervals
 delta_t = np.array([(time[i] - time[i-1]).total_seconds() 
 	for i in np.arange(1, len(dt))])
 
+# initialize
 delta_theta = np.full((nHeights, numfiles-1), np.nan)
 delta_q = np.full((nHeights, numfiles-1), np.nan)
-H = np.full((nHeights, numfiles), np.nan)
-F = np.full((nHeights, numfiles), np.nan)
+H0 = np.full((nHeights, numfiles), np.nan)
+F0 = np.full((nHeights, numfiles), np.nan)
 rho = np.full((nHeights, numfiles), np.nan)
 q = np.full((nHeights, numfiles), np.nan)
+H = np.full((nHeights, numfiles), np.nan)
+F = np.full((nHeights, numfiles), np.nan)
 
+# density and specific humidity
 for j in np.arange(numfiles):
 	for i in np.arange(nHeights):
 		rho[i, j] = 100. * p[i, j] / (Rd * (T[i, j] + 273.15))
 		q[i, j] = w[i, j] / (1. + w[i, j])
 
+# change in theta and q in subsequent times at each level
 for j in np.arange(1, numfiles):
 	for i in np.arange(nHeights):
 		delta_theta[i-1, j-1] = theta[i, j] - theta[i, j-1]
 		delta_q[i-1, j-1] = q[i, j] - q[i, j-1]
 
+# H and F at each level and time
 for j in np.arange(1, numfiles):
 	for i in np.arange(1, nHeights):
-		H[i, j] = cp * rho[i, j] * dh * delta_theta[i-1, j-1] / delta_t[j-1]
-		F[i, j] = Lv * rho[i, j] * dh * delta_q[i-1, j-1] / delta_t[j-1]
+		H0[i, j] = cp * rho[i, j] * dh * delta_theta[i-1, j-1] / delta_t[j-1]
+		F0[i, j] = Lv * rho[i, j] * dh * delta_q[i-1, j-1] / delta_t[j-1]
+
+# sum terms from top down
+for j in np.arange(0, numfiles):
+	for i in np.arange(0, nHeights):
+		H[i, j] = np.nansum(H0[i:, j])
+		F[i, j] = np.nansum(F0[i:, j])
 
 ## Set up plotting parameters
 # Meshgrid for barbs
