@@ -403,9 +403,10 @@ plt.title('Latent Heat Flux Evolution')
 ax8.legend()
 
 # Static Stability, Jet max altitude
+vmax = np.round(np.max(np.abs(dtdz_interp)), 2)
 fig9, ax9 = plt.subplots(1, figsize=(16,9))
 cfax9 = plt.pcolormesh(dt_interp, heights, dtdz_interp, 
-	cmap=cmocean.cm.balance, vmin=-0.25, vmax=0.25)
+	cmap=cmocean.cm.balance, vmin=-vmax, vmax=vmax)
 ax9.plot(dt_interp, alt_windmax_interp, linewidth=3, color='k')
 ax9.xaxis.set_major_locator(mpdates.MinuteLocator(interval=30))
 ax9.xaxis.set_major_formatter(mpdates.DateFormatter('%H:%M'))
