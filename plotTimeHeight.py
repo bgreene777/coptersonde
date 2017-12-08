@@ -161,7 +161,7 @@ for fname in fnameArr:
 
 ## Set up Dimensions
 time_list = [i.strftime('%H:%M:%S') for i in time]
-title_today = time[0].strftime('%d %b %Y') + ' ' + dataDirName
+title_today = time[0].strftime('%d %b %Y')
 maxHeight = max(numHeightsArr)
 
 numInterp = 1.
@@ -212,6 +212,15 @@ for j in np.arange(0, numfiles):
 		H[i, j] = np.nansum(H0[i:, j])
 		F[i, j] = np.nansum(F0[i:, j])
 
+## Calculate static stability
+dtdz = np.full((nHeights, numfiles), np.nan)
+alt_windmax = np.full((1, numfiles), np.nan)
+for j in np.arange(0, numfiles):
+	alt_windmax[0, j] = alt[np.argmax(speed[:, j]), j]
+	for i in np.arange(1, nHeights):
+		dtdz[i, j] = (theta[i, j] - theta[i-1, j]) / dh
+
+
 ## Set up plotting parameters
 # Alpha levels
 alpha = np.linspace(0.1, 1, num=numfiles)
@@ -242,6 +251,10 @@ u = np.multiply(-speed, np.sin(direction * np.pi / 180.))
 u_interp_kts = interpTime(dt, dt_interp, heights, u) * 1.94
 v = np.multiply(-speed, np.cos(direction * np.pi / 180.))
 v_interp_kts = interpTime(dt, dt_interp, heights, v) * 1.94
+dtdz_interp = interpTime(dt, dt_interp, heights, dtdz)
+
+f = interp1d(dt, alt_windmax)
+alt_windmax_interp = f(dt_interp).reshape((-1,))
 
 # Contour levels
 Tlevels = np.arange(np.floor(np.nanmin(T_interp)),
@@ -388,6 +401,20 @@ plt.title('Latent Heat Flux Evolution')
 	color=(0, 0, 1, alpha[iplot])) 
 	for iplot in np.arange(1, numfiles)]
 ax8.legend()
+
+# Static Stability, Jet max altitude
+fig9, ax9 = plt.subplots(1, figsize=(16,9))
+cfax9 = plt.pcolormesh(dt_interp, heights, dtdz_interp, 
+	cmap=cmocean.cm.balance, vmin=-0.25, vmax=0.25)
+ax9.plot(dt_interp, alt_windmax_interp, linewidth=3, color='k')
+ax9.xaxis.set_major_locator(mpdates.MinuteLocator(interval=30))
+ax9.xaxis.set_major_formatter(mpdates.DateFormatter('%H:%M'))
+plt.xlabel('Time UTC')
+plt.ylabel('Altitude AGL (m)')
+plt.title('dtheta/dz and wind max altitude ' + title_today)
+cbar9 = fig9.colorbar(cfax9)
+cbar9.ax.set_ylabel('dtheta/dz (K m$^{-1}$)')
+[plt.axvline(t, linestyle='--', color='k') for t in dt]
 
 plt.show(block=False)
 
