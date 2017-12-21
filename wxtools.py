@@ -19,12 +19,13 @@ import math
 from datetime import datetime, timedelta
 import urllib2
 import pytz
+import netCDF4
 
 #############
 ## Version ##
 #############
 '''
-Updated 11 November 2017
+Updated 21 December 2017
 Brian Greene
 University of Oklahoma
 Various subroutines for use with OU Coptersonde to atuomate calculations
@@ -76,7 +77,7 @@ def e_si(T_C):
 def csvread_raw(coptersondefilename):
 	'''
 	Input: filepath of coptersonde csv
-	Returns numpy array of coptersonde csv data a la csvread in MATLAB
+	Returns numpy array of select coptersonde csv data
 
 	Headers = Time, Lat, Long, Altitude, Abs Pressure, Roll, Pitch, Yaw, 
 	Humidity_1, Humidity_2, Humidity_3, Humidity_4, Temp_1, Temp_2, Temp_3,
@@ -169,36 +170,20 @@ def dgpsread(ppkfilename):
 def csvread_copter(coptercsv):
 	'''
 	Input: filepath of post-processed coptersonde csv
-	Returns numpy array of coptersonde csv data a la csvread in MATLAB
+	Returns numpy array of coptersonde csv data using numpy loadtxt
 
 	Headers = Lat, Lon, AltAGL(m), p(hPa), T(C), Td(C), RH(percent), w(gKg-1), 
 	Theta(K), Speed(ms-1), Dir(deg)
 	'''
-	f = open(coptercsv)
-	reader = csv.DictReader(f)
+	return np.loadtxt(coptercsv, delimiter=',', skiprows=1)
 
-	# Initialize
-	lat_, lon_, alt_, p_, T_, Td_, RH_, w_, theta_, speed_, dir_ \
-		= ([] for i in range(11))
+def csv_to_nc(filepath):
+	'''
+	Converts individual csv RAOB output to netcdf format
+	Input filepath for csv
+	Outputs new file in same directory
+	'''
 
-	# Assign
-	for line in reader:
-		lat_.append(float(line['Lat']))
-		lon_.append(float(line['Lon']))
-		alt_.append(float(line['AltAGL(m)']))
-		p_.append(float(line['p(hPa)']))
-		T_.append(float(line['T(C)']))
-		Td_.append(float(line['Td(C)']))
-		RH_.append(float(line['RH(percent)']))
-		w_.append(float(line['w(gKg-1)']))
-		theta_.append(float(line['Theta(K)']))
-		speed_.append(float(line['Speed(ms-1)']))
-		dir_.append(float(line['Dir(deg)']))
-
-	f.close()
-
-	return np.array([lat_, lon_, alt_, p_, T_, Td_, RH_, w_, 
-		theta_, speed_, dir_])
 
 
 def findLatestDir(dirname):
