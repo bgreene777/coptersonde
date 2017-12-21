@@ -183,6 +183,26 @@ def csv_to_nc(filepath):
 	Input filepath for csv
 	Outputs new file in same directory
 	'''
+	# Load data
+	data = csvread_copter(filepath)
+	lat_ = data[0, 0]
+	lon_ = data[0, 1]
+	alt_ = data[:, 2]
+	p_ = data[:, 3]
+	T_ = data[:, 4]
+	Td_ = data[:, 5]
+	RH_ = data[:, 6]
+	w_ = data[:, 7]
+	Theta_ = data[:, 8]
+	Speed_ = data[:, 9]
+	Dir_ = data[:, 10]
+
+	# Grab filename, change .csv to .nc
+	fname = filepath.split('/')[-1].split('.')[0] + '.nc'
+	# Find nearest mesonet site
+
+
+
 
 
 
@@ -234,18 +254,20 @@ def findSite(cop_lat, cop_lon, fmeso=mesocsv):
 	'''
 	Inputs: copter latitude, copter longitude
 	Locates nearest mesonet station using geopy vincenty distance
-	Returns Site name and identifier in form: SITE/longname
+	Returns Site name, identifier, and elevation in form: SITE/longname/elev
 	'''
 	f = open(fmeso)
 	reader = csv.DictReader(f)
-	mesoLat, mesoLon, mesoName, mesoLong = ([] for i in range(4))
+	mesoLat, mesoLon, mesoName, mesoLong, mesoElev = ([] for i in range(5))
 	for line in reader:
 	    mesoLat.append(float(line['nlat']))
 	    mesoLon.append(float(line['elon']))
 	    mesoName.append(line['stid'])
 	    mesoLong.append(line['name'])
+	    mesoElev.append(float(line['elev']))
 	mesoLat = np.array(mesoLat)
 	mesoLon = np.array(mesoLon)
+	mesoElev = np.array(mesoElev)
 	# calculate distances to mesonet sites
 	distances = np.array([geopy.distance.vincenty((cop_lat, cop_lon), (iPos)) \
 	    for iPos in zip(mesoLat, mesoLon)])
@@ -254,7 +276,7 @@ def findSite(cop_lat, cop_lon, fmeso=mesocsv):
 
 	site = mesoName[iMeso]
 	print 'Site identified: %s' % site
-	return site + '/' + mesoLong[iMeso]
+	return site + '/' + mesoLong[iMeso] + '/' + mesoElev[iMeo]
 
 def findStart(vertSpdRaw, altRaw, timeRaw):
 	'''
