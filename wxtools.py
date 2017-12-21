@@ -203,7 +203,7 @@ def csv_to_nc(filepath):
 	# Grab filename, change .csv to .nc
 	fname = filepath.split('/')[-1].split('.')[0] + '.nc'
 	# Grab date and time from filename
-	date_str, time_str = fname.splt('-')[0].split('_')
+	date_str, time_str = fname.split('-')[0].split('_')
 	dt_ = datetime.strptime(fname.split('-')[0], '%Y%m%d_%H%M%S')
 	timestamp_ = time.mktime(dt_.timetuple())
 	# Find nearest mesonet site
@@ -345,7 +345,7 @@ def findSite(cop_lat, cop_lon, fmeso=mesocsv):
 	    mesoLon.append(float(line['elon']))
 	    mesoName.append(line['stid'])
 	    mesoLong.append(line['name'])
-	    mesoElev.append(float(line['elev']))
+	    mesoElev.append(line['elev'])
 	mesoLat = np.array(mesoLat)
 	mesoLon = np.array(mesoLon)
 	mesoElev = np.array(mesoElev)
@@ -357,7 +357,7 @@ def findSite(cop_lat, cop_lon, fmeso=mesocsv):
 
 	site = mesoName[iMeso]
 	print 'Site identified: %s' % site
-	return site + '/' + mesoLong[iMeso] + '/' + mesoElev[iMeo]
+	return site + '/' + mesoLong[iMeso] + '/' + mesoElev[iMeso]
 
 def findStart(vertSpdRaw, altRaw, timeRaw):
 	'''
