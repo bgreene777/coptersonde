@@ -17,6 +17,7 @@ import geopy.distance
 import cmocean
 import math
 from datetime import datetime, timedelta
+import time
 import urllib2
 import pytz
 import netCDF4
@@ -197,13 +198,93 @@ def csv_to_nc(filepath):
 	Speed_ = data[:, 9]
 	Dir_ = data[:, 10]
 
+	# Number of levels
+	nHeights = len(alt_)
 	# Grab filename, change .csv to .nc
 	fname = filepath.split('/')[-1].split('.')[0] + '.nc'
+	# Grab date and time from filename
+	date_str, time_str = fname.splt('-')[0].split('_')
+	dt_ = datetime.strptime(fname.split('-')[0], '%Y%m%d_%H%M%S')
+	timestamp_ = time.mktime(dt_.timetuple())
 	# Find nearest mesonet site
+	meso_ = findSite(lat_, lon_)
+	elev_ = float(meso_.split('/')[2])
+	# Covert AGL to MSL
+	altMSL_ = alt_ + elev_
 
+	# Initialize nc file
+	rootgrp = netCDF4.Dataset(fname, 'w', format='NETCDF4')
+	# Initialize dimensions - level, lat, lon
+	level = rootgrp.createDimension('level', None)
+	lat = rootgrp.createDimension('lat', 1)
+	lon = rootgrp.createDimension('lon', 1)
+	# Initialize variables
+	# Dimensional info
+	latitude = rootgrp.createVariable('lat', 'f4', ('lat',))
+	longitude = rootgrp.createVariable('lon', 'f4', ('lon',))
+	levels = rootgrp.createVariable('level', 'i4', ('level',))
+	# Data
+	alt_agl = rootgrp.createVariable('alt_agl', 'f4', ('level',))
+	alt_msl = rootgrp.createVariable('alt_msl', 'f4', ('level',))
+	p = rootgrp.createVariable('pressure', 'f4', ('level',))
+	T = rootgrp.createVariable('Temperature', 'f4', ('level',))
+	Td = rootgrp.createVariable('Dewpoint', 'f4', ('level',))
+	RH = rootgrp.createVariable('RH', 'f4', ('level',))
+	w = rootgrp.createVariable('Mixing', 'f4', ('level',))
+	Theta = rootgrp.createVariable('Theta', 'f4', ('level',))
+	Speed = rootgrp.createVariable('Speed', 'f4', ('level',))
+	Dir = rootgrp.createVariable('Dir', 'f4', ('level',))
+	# Global attributes
+	rootgrp.decription = 'OU Coptersonde vertical profile'
+	rootgrp.location_short = meso_.split('/')[0]
+	rootgrp.location_long = meso_.split('/')[1]
+	rootgrp.elevation_MSL_m = elev_
+	rootgrp.date_str = date_str
+	rootgrp.time_str = time_str
+	rootgrp.timestamp = timestamp_
+	rootgrp.max_alt_agl_m = np.nanmax(alt_)
+	# Variable attributes
+	alt_agl.name_long = 'Altitude above ground level'
+	alt_agl.units = 'm'
+	alt_msl.name_long = 'Altitude above sea level'
+	alt_msl.units = 'm'
+	p.name_long = 'Pressure'
+	p.units = 'hPa'
+	T.name_long = 'Temperature'
+	T.units = 'C'
+	Td.name_long = 'Dewpoint Temperature'
+	Td.units = 'C'
+	RH.name_long = 'Relative Humidity'
+	RH.units = 'percent'
+	w.name_long = 'Water Vapor Mixing Ratio'
+	w.units = 'g kg-1'
+	Theta.name_long = 'Potential Temperature'
+	Theta.units = 'K'
+	Speed.name_long = 'Wind Speed'
+	Speed.units = 'm s-1'
+	Dir.name_long = 'Wind Direction'
+	Dir.units = 'degrees'
+	# Assign values
+	latitude[0] = lat_
+	longitude[0] = lon_
+	alt_agl[:nHeights] = alt_
+	alt_msl[:nHeights] = altMSL_
+	p[:nHeights] = p_
+	T[:nHeights] = T_
+	Td[:nHeights] = Td_
+	RH[:nHeights] = RH_
+	w[:nHeights] = w_
+	Theta[:nHeights] = Theta_
+	Speed[:nHeights] = Speed_
+	Dir[:nHeights] = Dir_
+	# Assign to unlimited dimension variable
+	levels = np.arange(nHeights)
 
+	# Close File
+	rootgrp.close()
 
-
+	print '>>%s created successfully!' % fname
+	return
 
 
 def findLatestDir(dirname):
