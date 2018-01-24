@@ -301,7 +301,7 @@ def collect_nc(date, location):
 
 	# Assign to unlimited dimension variable
 	levels[:] = np.arange(nHeights)
-	t = gattsDic['timestamp']
+	t[:] = gattsDic['timestamp']
 
 	# Close File
 	newnc.close()
