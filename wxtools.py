@@ -192,7 +192,11 @@ def collect_nc(date, location):
 	'''
 	ncDirPath = os.path.join(dataDirName, 'PBL Transition', date, location, 
 		'pp_nc')
-	fnameArr = glob(os.path.join(datDirPath, "*.nc")) # string array
+	fnameArr = glob(os.path.join(ncDirPath, "*.nc")) # string array of filenames
+	# Loop through and load each variable into 2D numpy array
+	for f in fnameArr:
+		
+
 
 	return
 
@@ -321,6 +325,7 @@ def csvdir_to_ncdir(dirname):
 	'''
 	fnameArr = glob(os.path.join(dirname, "*.csv"))
 	[csv_to_nc(file) for file in fnameArr]
+	print '>>Reached end of folder. Conversion complete.'
 	return
 
 def findLatestDir(dirname):
