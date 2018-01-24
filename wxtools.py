@@ -24,7 +24,7 @@ import pytz
 ## Version ##
 #############
 '''
-Updated 14 September 2017
+Updated 11 November 2017
 Brian Greene
 University of Oklahoma
 Various subroutines for use with OU Coptersonde to atuomate calculations
@@ -200,16 +200,6 @@ def csvread_copter(coptercsv):
 	return np.array([lat_, lon_, alt_, p_, T_, Td_, RH_, w_, 
 		theta_, speed_, dir_])
 
-def findLatestCSV(dirname):
-	'''
-	Input data directory where raw csv files are saved
-	Returns filepath of most recently created file
-	'''
-	fnameArr = glob(os.path.join(dirname, '*.csv'))
-	csvCreatedArr = []
-	for s in fnameArr:
-		csvCreatedArr.append(float(os.stat(s).st_birthtime))
-	return fnameArr[max(enumerate(csvCreatedArr))[0]]
 
 def findLatestDir(dirname):
 	'''
@@ -218,9 +208,21 @@ def findLatestDir(dirname):
 	'''
 	fnameArr = glob(os.path.join(dirname, '*/*/'))
 	dirCreatedArr = []
-	for d in fnameArr:
-		dirCreatedArr.append(float(os.stat(d).st_birthtime))
+	[dirCreatedArr.append(float(d.split('/')[-3])) for d in fnameArr]
 	return fnameArr[max(enumerate(dirCreatedArr))[0]] + 'Raw/'
+
+def findLatestCSV(dirname):
+	'''
+	Input data directory where raw csv files are saved
+	Returns filepath of most recently created file
+	'''
+	latestDir = findLatestDir(dirname)
+	fnameArr = glob(os.path.join(latestDir, '*.csv'))
+	csvCreatedArr = []
+	for s in fnameArr:
+		csvCreatedArr.append(datetime.strptime(
+			s.split('/')[-1][29:38], '%Hh%Mm%Ss'))
+	return fnameArr[max(enumerate(csvCreatedArr))[0]]
 
 def findDGPSfile(csvfilename):
 	'''

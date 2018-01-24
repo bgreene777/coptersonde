@@ -626,7 +626,7 @@ else:
 ######################
 
 print 'Plotting...'
-fig5 = plt.figure(figsize=(12,10.67))
+fig5 = plt.figure(figsize=(10.125,9))
 gs = gridspec.GridSpec(5, 4)
 skew = SkewT(fig5, rotation=20, subplot=gs[:, :2])
 
@@ -721,8 +721,8 @@ if isRH:
     boxprops = dict(boxstyle='round', facecolor='none')
     ax_data.text(0.5, 0.95, datastr, transform=ax_data.transAxes, fontsize=14,
         va='top', ha='center', bbox=boxprops)
-    ax_data.legend(hand, lab, loc='upper center', 
-        bbox_to_anchor=(0.5, 0.2), ncol=2, frameon=False)
+    ax_data.legend(hand, lab, loc='upper center', \
+        bbox_to_anchor=(0.5, 0.15), ncol=2, frameon=False)
     # Logos
     ax_png = fig5.add_subplot(gs[4, 2:])
     img = mpimg.imread(logoName)
