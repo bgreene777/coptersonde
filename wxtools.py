@@ -193,9 +193,36 @@ def collect_nc(date, location):
 	ncDirPath = os.path.join(dataDirName, 'PBL Transition', date, location, 
 		'pp_nc')
 	fnameArr = glob(os.path.join(ncDirPath, "*.nc")) # string array of filenames
-	# Loop through and load each variable into 2D numpy array
+	maxAltArr = np.array([])
+	deltaArr = np.array([])
+	# Initialize dictionary
+	dataDic = {}
+	# Loop through to find max alt and spacing - used for defining new nc dims
 	for f in fnameArr:
-		
+		df = netCDF4.Dataset(f, 'r')
+		maxAltArr = np.append(maxAltArr, df.max_alt_agl_m)
+		dz = df.variables['alt_agl'][-1] - df.variables['alt_agl'][-2]
+		deltaArr = np.append(deltaArr, dz)
+		names = df.variables.keys()
+		dims = df.dimensions.keys()
+
+	deltaZ = deltaArr.mean()
+	nHeights = int(maxAltArr.max() / deltaZ)
+
+	# Set Dictionary Keys
+	for key in names:
+		dataDic.update({key:[]})
+
+	# Loop through files, appending data
+	for f in fnameArr:
+		df = netCDF4.Dataset(f, 'r')
+		n = df.variables.keys()
+		d = df.dimensions.keys()
+		for key in n:
+			dataDic[key].append(df.variables[key][:])
+
+
+
 
 
 	return
