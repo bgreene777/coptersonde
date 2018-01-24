@@ -26,22 +26,29 @@ import netCDF4
 ## Version ##
 #############
 '''
-Updated 21 December 2017
+Updated 24 January 2018
 Brian Greene
 University of Oklahoma
 Various subroutines for use with OU Coptersonde to atuomate calculations
 '''
+
+############
+# Get User #
+############
+
+user = os.getlogin()
+
 #################
 ## Directories ##
 #################
 
-myNextcloud = '/Users/briangreene/Nextcloud/thermo/'
+myNextcloud = os.path.join('Users', user, 'Nextcloud', 'thermo')
 # location of raw .csv and .pos files
-dataDirName = myNextcloud + 'data/'
+dataDirName = os.path.join(myNextcloud, 'data')
 # location of mesonet location csv
-mesocsv = myNextcloud + 'documentation/Mesonet/geoinfo.csv'
+mesocsv = os.path.join(myNextcloud, 'documentation', 'Mesonet', 'geoinfo.csv')
 # location of Logos.png
-logoName = myNextcloud + 'documentation/Logos.png'
+logoName = os.path.join(myNextcloud, 'documentation', 'Logos.png')
 
 ######################################
 ## Thermodynamics and Cloud Physics ##
@@ -177,6 +184,16 @@ def csvread_copter(coptercsv):
 	Theta(K), Speed(ms-1), Dir(deg)
 	'''
 	return np.loadtxt(coptercsv, delimiter=',', skiprows=1)
+
+def collect_nc(date, location):
+	'''
+	Inputs: date (YYYYMMDD), location (4-letter identifier)
+	Combines and outputs single nc file in same directory
+	'''
+	ncDirPath = os.path.join(, 'bin', 'spam')dataDirName + date + 
+	fnameArr = glob(os.path.join(datDirPath, "*.nc")) # string array
+
+	return
 
 def csv_to_nc(filepath):
 	'''
