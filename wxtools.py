@@ -17,29 +17,38 @@ import geopy.distance
 import cmocean
 import math
 from datetime import datetime, timedelta
+import time
 import urllib2
 import pytz
+import netCDF4
 
 #############
 ## Version ##
 #############
 '''
-Updated 11 November 2017
+Updated 24 January 2018
 Brian Greene
 University of Oklahoma
 Various subroutines for use with OU Coptersonde to atuomate calculations
 '''
+
+############
+# Get User #
+############
+
+user = os.getlogin()
+
 #################
 ## Directories ##
 #################
 
-myNextcloud = '/Users/briangreene/Nextcloud/thermo/'
+myNextcloud = os.sep + os.path.join('Users', user, 'Nextcloud', 'thermo')
 # location of raw .csv and .pos files
-dataDirName = myNextcloud + 'data/'
+dataDirName = os.path.join(myNextcloud, 'data')
 # location of mesonet location csv
-mesocsv = myNextcloud + 'documentation/Mesonet/geoinfo.csv'
+mesocsv = os.path.join(myNextcloud, 'documentation', 'Mesonet', 'geoinfo.csv')
 # location of Logos.png
-logoName = myNextcloud + 'documentation/Logos.png'
+logoName = os.path.join(myNextcloud, 'documentation', 'Logos.png')
 
 ######################################
 ## Thermodynamics and Cloud Physics ##
@@ -76,7 +85,7 @@ def e_si(T_C):
 def csvread_raw(coptersondefilename):
 	'''
 	Input: filepath of coptersonde csv
-	Returns numpy array of coptersonde csv data a la csvread in MATLAB
+	Returns numpy array of select coptersonde csv data
 
 	Headers = Time, Lat, Long, Altitude, Abs Pressure, Roll, Pitch, Yaw, 
 	Humidity_1, Humidity_2, Humidity_3, Humidity_4, Temp_1, Temp_2, Temp_3,
@@ -169,37 +178,264 @@ def dgpsread(ppkfilename):
 def csvread_copter(coptercsv):
 	'''
 	Input: filepath of post-processed coptersonde csv
-	Returns numpy array of coptersonde csv data a la csvread in MATLAB
+	Returns numpy array of coptersonde csv data using numpy loadtxt
 
 	Headers = Lat, Lon, AltAGL(m), p(hPa), T(C), Td(C), RH(percent), w(gKg-1), 
 	Theta(K), Speed(ms-1), Dir(deg)
 	'''
-	f = open(coptercsv)
-	reader = csv.DictReader(f)
+	return np.loadtxt(coptercsv, delimiter=',', skiprows=1)
 
-	# Initialize
-	lat_, lon_, alt_, p_, T_, Td_, RH_, w_, theta_, speed_, dir_ \
-		= ([] for i in range(11))
+def collect_nc(date, location):
+	'''
+	Inputs: date (YYYYMMDD), location (directory name)
+	Combines and outputs single nc file in same directory
+	'''
+	ncDirPath = os.path.join(dataDirName, 'PBL Transition', date, location, 
+		'pp_nc')
+	fnameArr = glob(os.path.join(ncDirPath, "*.nc")) # string array of filenames
+	maxAltArr = np.array([])
+	deltaArr = np.array([])
+	timestamp = np.array([])
+	# Initialize dictionary
+	dataDic = {}
+	gattsDic = {}
+	# Loop through to find max alt and spacing - used for defining new nc dims
+	for f in fnameArr:
+		df = netCDF4.Dataset(f, 'r')
+		maxAltArr = np.append(maxAltArr, df.max_alt_agl_m)
+		dz = df.variables['alt_agl'][-1] - df.variables['alt_agl'][-2]
+		deltaArr = np.append(deltaArr, dz)
+		names = df.variables.keys()
+		dims = df.dimensions.keys()
+		gatts = df.ncattrs()
 
-	# Assign
-	for line in reader:
-		lat_.append(float(line['Lat']))
-		lon_.append(float(line['Lon']))
-		alt_.append(float(line['AltAGL(m)']))
-		p_.append(float(line['p(hPa)']))
-		T_.append(float(line['T(C)']))
-		Td_.append(float(line['Td(C)']))
-		RH_.append(float(line['RH(percent)']))
-		w_.append(float(line['w(gKg-1)']))
-		theta_.append(float(line['Theta(K)']))
-		speed_.append(float(line['Speed(ms-1)']))
-		dir_.append(float(line['Dir(deg)']))
+	deltaZ = deltaArr.mean()
+	nHeights = int(maxAltArr.max() / deltaZ)
+	nFiles = len(fnameArr)
 
-	f.close()
+	# Set Data Dictionary Keys
+	for key in names:
+		dataDic.update({key:[]})
+	# Set gatts dictionary keys
+	for key in gatts:
+		gattsDic.update({key:[]})
 
-	return np.array([lat_, lon_, alt_, p_, T_, Td_, RH_, w_, 
-		theta_, speed_, dir_])
+	# Loop through files, appending data
+	for f in fnameArr:
+		df = netCDF4.Dataset(f, 'r')
+		n = df.variables.keys()
+		g = df.ncattrs()
+		for key in n:
+			dataDic[key].append(df.variables[key][:])
+		for key in g:
+			gattsDic[key].append(getattr(df, key))
 
+	# Initialize new nc file
+	fname_save = date + '-' + location + '-' + 'all.nc'
+	fpath_save = os.path.join(ncDirPath, fname_save)
+	newnc = netCDF4.Dataset(fpath_save, 'w', format='NETCDF4')
+	# Initialize dimensions - level, lat, lon, time
+	level = newnc.createDimension('level', nHeights)
+	lat = newnc.createDimension('lat', 1)
+	lon = newnc.createDimension('lon', 1)
+	time = newnc.createDimension('time', None)
+	# Initialize variables
+	# Dimensional info
+	latitude = newnc.createVariable('lat', 'f4', ('lat',))
+	longitude = newnc.createVariable('lon', 'f4', ('lon',))
+	levels = newnc.createVariable('level', 'i4', ('level',))
+	t = newnc.createVariable('time', 'f4', ('time',))
+	# Data
+	alt_agl = newnc.createVariable('alt_agl', 'f4', ('level', 'time'))
+	p = newnc.createVariable('pressure', 'f4', ('level', 'time'))
+	T = newnc.createVariable('Temperature', 'f4', ('level', 'time'))
+	Td = newnc.createVariable('Dewpoint', 'f4', ('level', 'time'))
+	RH = newnc.createVariable('RH', 'f4', ('level', 'time'))
+	w = newnc.createVariable('Mixing', 'f4', ('level', 'time'))
+	Theta = newnc.createVariable('Theta', 'f4', ('level', 'time'))
+	Speed = newnc.createVariable('Speed', 'f4', ('level', 'time'))
+	Dir = newnc.createVariable('Dir', 'f4', ('level', 'time'))
+	# Global atts
+	newnc.decription = 'OU Coptersonde vertical profile timeseries'
+	newnc.location_short = gattsDic['location_short'][0]
+	newnc.location_long = gattsDic['location_long'][0]
+	newnc.elevation_MSL_m = gattsDic['elevation_MSL_m'][0]
+	newnc.date_str = gattsDic['date_str'][0]
+	newnc.time_str_beg = gattsDic['time_str'][0]
+	newnc.time_str_end = gattsDic['time_str'][-1]
+	newnc.timestamp_start = gattsDic['timestamp'][0]
+	newnc.timestamp_end = gattsDic['timestamp'][-1]
+	newnc.max_alt_agl_m = np.nanmax(gattsDic['max_alt_agl_m'])
+	# Variable attributes
+	alt_agl.name_long = 'Altitude above ground level'
+	alt_agl.units = 'm'
+	p.name_long = 'Pressure'
+	p.units = 'hPa'
+	T.name_long = 'Temperature'
+	T.units = 'C'
+	Td.name_long = 'Dewpoint Temperature'
+	Td.units = 'C'
+	RH.name_long = 'Relative Humidity'
+	RH.units = 'percent'
+	w.name_long = 'Water Vapor Mixing Ratio'
+	w.units = 'g kg-1'
+	Theta.name_long = 'Potential Temperature'
+	Theta.units = 'K'
+	Speed.name_long = 'Wind Speed'
+	Speed.units = 'm s-1'
+	Dir.name_long = 'Wind Direction'
+	Dir.units = 'degrees'
+	# Assign values
+	latitude[0] = dataDic['lat'][0]
+	longitude[0] = dataDic['lon'][0]
+	for i in range(len(fnameArr)):
+		n = len(dataDic['alt_agl'][i])
+		alt_agl[:n, i] = dataDic['alt_agl'][i]
+		p[:n, i] = dataDic['pressure'][i]
+		T[:n, i] = dataDic['Temperature'][i]
+		RH[:n, i] = dataDic['RH'][i]
+		w[:n, i] = dataDic['Mixing'][i]
+		Theta[:n, i] = dataDic['Theta'][i]
+		Speed[:n, i] = dataDic['Speed'][i]
+		Dir[:n, i] = dataDic['Dir'][i]
+
+	# Assign to unlimited dimension variable
+	levels[:] = np.arange(nHeights)
+	t[:] = gattsDic['timestamp']
+
+	# Close File
+	newnc.close()
+
+	print '>>File created successfully!'
+	return
+
+def csv_to_nc(filepath):
+	'''
+	Converts individual csv RAOB output to netcdf format
+	Input filepath for csv
+	Outputs new file in new directory at same level titled 'pp_nc'
+	'''
+	# Load data
+	data = csvread_copter(filepath)
+	lat_ = data[0, 0]
+	lon_ = data[0, 1]
+	alt_ = data[:, 2]
+	p_ = data[:, 3]
+	T_ = data[:, 4]
+	Td_ = data[:, 5]
+	RH_ = data[:, 6]
+	w_ = data[:, 7]
+	Theta_ = data[:, 8]
+	Speed_ = data[:, 9]
+	Dir_ = data[:, 10]
+
+	# Number of levels
+	nHeights = len(alt_)
+	# Grab filename, change .csv to .nc
+	fname = filepath.split(os.sep)[-1].split('.')[0] + '.nc'
+	# Grab date and time from filename
+	date_str, time_str = fname.split('-')[0].split('_')
+	dt_ = datetime.strptime(fname.split('-')[0], '%Y%m%d_%H%M%S')
+	timestamp_ = time.mktime(dt_.timetuple())
+	# Find nearest mesonet site
+	meso_ = findSite(lat_, lon_)
+	elev_ = float(meso_.split(os.sep)[2])
+	# Covert AGL to MSL
+	altMSL_ = alt_ + elev_
+
+	# Determine save directory and filename
+	fpathArr = filepath.split(os.sep)
+	fpathArr[-2:] = ['pp_nc', fname]
+	fpath_save = os.sep + os.path.join(*fpathArr)
+
+	# Check for existence of this directory
+	# If exists, continue; otherwise, mkdir
+	if not os.path.exists(fpath_save.rsplit(os.sep, 1)[0]):
+		os.mkdir(fpath_save.rsplit(os.sep, 1)[0])
+
+	# Initialize nc file
+	rootgrp = netCDF4.Dataset(fpath_save, 'w', format='NETCDF4')
+	# Initialize dimensions - level, lat, lon
+	level = rootgrp.createDimension('level', None)
+	lat = rootgrp.createDimension('lat', 1)
+	lon = rootgrp.createDimension('lon', 1)
+	# Initialize variables
+	# Dimensional info
+	latitude = rootgrp.createVariable('lat', 'f4', ('lat',))
+	longitude = rootgrp.createVariable('lon', 'f4', ('lon',))
+	levels = rootgrp.createVariable('level', 'i4', ('level',))
+	# Data
+	alt_agl = rootgrp.createVariable('alt_agl', 'f4', ('level',))
+	alt_msl = rootgrp.createVariable('alt_msl', 'f4', ('level',))
+	p = rootgrp.createVariable('pressure', 'f4', ('level',))
+	T = rootgrp.createVariable('Temperature', 'f4', ('level',))
+	Td = rootgrp.createVariable('Dewpoint', 'f4', ('level',))
+	RH = rootgrp.createVariable('RH', 'f4', ('level',))
+	w = rootgrp.createVariable('Mixing', 'f4', ('level',))
+	Theta = rootgrp.createVariable('Theta', 'f4', ('level',))
+	Speed = rootgrp.createVariable('Speed', 'f4', ('level',))
+	Dir = rootgrp.createVariable('Dir', 'f4', ('level',))
+	# Global attributes
+	rootgrp.decription = 'OU Coptersonde vertical profile'
+	rootgrp.location_short = meso_.split('/')[0]
+	rootgrp.location_long = meso_.split('/')[1]
+	rootgrp.elevation_MSL_m = elev_
+	rootgrp.date_str = date_str
+	rootgrp.time_str = time_str
+	rootgrp.timestamp = timestamp_
+	rootgrp.max_alt_agl_m = np.nanmax(alt_)
+	# Variable attributes
+	alt_agl.name_long = 'Altitude above ground level'
+	alt_agl.units = 'm'
+	alt_msl.name_long = 'Altitude above sea level'
+	alt_msl.units = 'm'
+	p.name_long = 'Pressure'
+	p.units = 'hPa'
+	T.name_long = 'Temperature'
+	T.units = 'C'
+	Td.name_long = 'Dewpoint Temperature'
+	Td.units = 'C'
+	RH.name_long = 'Relative Humidity'
+	RH.units = 'percent'
+	w.name_long = 'Water Vapor Mixing Ratio'
+	w.units = 'g kg-1'
+	Theta.name_long = 'Potential Temperature'
+	Theta.units = 'K'
+	Speed.name_long = 'Wind Speed'
+	Speed.units = 'm s-1'
+	Dir.name_long = 'Wind Direction'
+	Dir.units = 'degrees'
+	# Assign values
+	latitude[0] = lat_
+	longitude[0] = lon_
+	alt_agl[:nHeights] = alt_
+	alt_msl[:nHeights] = altMSL_
+	p[:nHeights] = p_
+	T[:nHeights] = T_
+	Td[:nHeights] = Td_
+	RH[:nHeights] = RH_
+	w[:nHeights] = w_
+	Theta[:nHeights] = Theta_
+	Speed[:nHeights] = Speed_
+	Dir[:nHeights] = Dir_
+	# Assign to unlimited dimension variable
+	levels = np.arange(nHeights)
+
+	# Close File
+	rootgrp.close()
+
+	print '>>%s created successfully!' % fname
+	return
+
+def csvdir_to_ncdir(dirname):
+	'''
+	Input: directory path for post-processed coptersonde csv files
+	Loops through directory and converts each csv to nc file using csv_to_nc
+	'''
+	fnameArr = glob(os.path.join(dirname, "*.csv"))
+	[csv_to_nc(file) for file in fnameArr]
+	print '>>Reached end of folder. Conversion complete.'
+	return
 
 def findLatestDir(dirname):
 	'''
@@ -208,7 +444,7 @@ def findLatestDir(dirname):
 	'''
 	fnameArr = glob(os.path.join(dirname, '*/*/'))
 	dirCreatedArr = []
-	[dirCreatedArr.append(float(d.split('/')[-3])) for d in fnameArr]
+	[dirCreatedArr.append(float(d.split(os.sep)[-3])) for d in fnameArr]
 	return fnameArr[max(enumerate(dirCreatedArr))[0]] + 'Raw/'
 
 def findLatestCSV(dirname):
@@ -249,18 +485,20 @@ def findSite(cop_lat, cop_lon, fmeso=mesocsv):
 	'''
 	Inputs: copter latitude, copter longitude
 	Locates nearest mesonet station using geopy vincenty distance
-	Returns Site name and identifier in form: SITE/longname
+	Returns Site name, identifier, and elevation in form: SITE/longname/elev
 	'''
 	f = open(fmeso)
 	reader = csv.DictReader(f)
-	mesoLat, mesoLon, mesoName, mesoLong = ([] for i in range(4))
+	mesoLat, mesoLon, mesoName, mesoLong, mesoElev = ([] for i in range(5))
 	for line in reader:
 	    mesoLat.append(float(line['nlat']))
 	    mesoLon.append(float(line['elon']))
 	    mesoName.append(line['stid'])
 	    mesoLong.append(line['name'])
+	    mesoElev.append(line['elev'])
 	mesoLat = np.array(mesoLat)
 	mesoLon = np.array(mesoLon)
+	mesoElev = np.array(mesoElev)
 	# calculate distances to mesonet sites
 	distances = np.array([geopy.distance.vincenty((cop_lat, cop_lon), (iPos)) \
 	    for iPos in zip(mesoLat, mesoLon)])
@@ -269,7 +507,7 @@ def findSite(cop_lat, cop_lon, fmeso=mesocsv):
 
 	site = mesoName[iMeso]
 	print 'Site identified: %s' % site
-	return site + '/' + mesoLong[iMeso]
+	return site + '/' + mesoLong[iMeso] + '/' + mesoElev[iMeso]
 
 def findStart(vertSpdRaw, altRaw, timeRaw):
 	'''

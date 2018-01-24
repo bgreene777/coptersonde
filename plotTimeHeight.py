@@ -14,6 +14,9 @@ from scipy.interpolate import interp1d
 from datetime import datetime, timedelta
 import Tkinter
 from tkFileDialog import askdirectory
+from metpy.constants import dry_air_gas_constant as Rd
+from metpy.constants import water_heat_vaporization as Lv
+from metpy.constants import dry_air_spec_heat_press as cp
 import warnings
 
 ## Required pacakges & files: cmocean
@@ -29,6 +32,10 @@ warnings.filterwarnings("ignore",
 warnings.filterwarnings("ignore",
 	".*invalid value encountered in true_divide.*")
 
+# Constants
+Rd = 1000. * Rd.magnitude
+Lv = Lv.magnitude
+cp = float(cp.magnitude)
 
 # Select directory
 root = Tkinter.Tk()
@@ -111,7 +118,8 @@ for fname in fnameArr:
     	temp.append(float(line['T(C)']))
     	dew.append(float(line['Td(C)']))
     	rh.append(float(line['RH(percent)']))
-    	mix.append(float(line['w(gKg-1)']))
+    	# want w in kg kg-1
+    	mix.append(float(line['w(gKg-1)'])/1000.)
     	pottemp.append(float(line['Theta(K)']))
     	spd.append(float(line['Speed(ms-1)']))
     	wind.append(float(line['Dir(deg)']))
@@ -123,7 +131,7 @@ for fname in fnameArr:
     #lat[:sz, count] = latitude
     #lon[:sz, count] = longitude
     alt[:sz, count] = altitude
-    p[:sz, count] = altitude
+    p[:sz, count] = pressure
     T[:sz, count] = temp
     Td[:sz, count] = dew
     RH[:sz, count] = rh
@@ -150,10 +158,10 @@ for fname in fnameArr:
 
     count += 1
 
-## Set up plotting parameters
-# Dimensions
+
+## Set up Dimensions
 time_list = [i.strftime('%H:%M:%S') for i in time]
-title_today = time[0].strftime('%d %b %Y') + ' ' +dataDirName[-4:]
+title_today = time[0].strftime('%d %b %Y')
 maxHeight = max(numHeightsArr)
 
 numInterp = 1.
@@ -162,6 +170,60 @@ heights = 10. * np.arange(0, nHeights)
 
 dt = mpdates.date2num(time)
 dt_interp = mpdates.drange(time[0], time[-1], timedelta(seconds=delta_t))
+
+## Calculate sensible and latent heat fluxes
+dh = 10. # m
+
+# time intervals
+delta_t = np.array([(time[i] - time[i-1]).total_seconds() 
+	for i in np.arange(1, len(dt))])
+
+# initialize
+delta_theta = np.full((nHeights, numfiles-1), np.nan)
+delta_q = np.full((nHeights, numfiles-1), np.nan)
+H0 = np.full((nHeights, numfiles), np.nan)
+F0 = np.full((nHeights, numfiles), np.nan)
+rho = np.full((nHeights, numfiles), np.nan)
+q = np.full((nHeights, numfiles), np.nan)
+H = np.full((nHeights, numfiles), np.nan)
+F = np.full((nHeights, numfiles), np.nan)
+
+# density and specific humidity
+for j in np.arange(numfiles):
+	for i in np.arange(nHeights):
+		rho[i, j] = 100. * p[i, j] / (Rd * (T[i, j] + 273.15))
+		q[i, j] = w[i, j] / (1. + w[i, j])
+
+# change in theta and q in subsequent times at each level
+for j in np.arange(1, numfiles):
+	for i in np.arange(nHeights):
+		delta_theta[i-1, j-1] = theta[i, j] - theta[i, j-1]
+		delta_q[i-1, j-1] = q[i, j] - q[i, j-1]
+
+# H and F at each level and time
+for j in np.arange(1, numfiles):
+	for i in np.arange(1, nHeights):
+		H0[i, j] = cp * rho[i, j] * dh * delta_theta[i-1, j-1] / delta_t[j-1]
+		F0[i, j] = Lv * rho[i, j] * dh * delta_q[i-1, j-1] / delta_t[j-1]
+
+# sum terms from top down
+for j in np.arange(0, numfiles):
+	for i in np.arange(0, nHeights):
+		H[i, j] = np.nansum(H0[i:, j])
+		F[i, j] = np.nansum(F0[i:, j])
+
+## Calculate static stability
+dtdz = np.full((nHeights, numfiles), np.nan)
+alt_windmax = np.full((1, numfiles), np.nan)
+for j in np.arange(0, numfiles):
+	alt_windmax[0, j] = alt[np.argmax(speed[:, j]), j]
+	for i in np.arange(1, nHeights):
+		dtdz[i, j] = (theta[i, j] - theta[i-1, j]) / dh
+
+
+## Set up plotting parameters
+# Alpha levels
+alpha = np.linspace(0.1, 1, num=numfiles)
 
 # Meshgrid for barbs
 t_barbs = int(10. / numInterp)
@@ -189,6 +251,10 @@ u = np.multiply(-speed, np.sin(direction * np.pi / 180.))
 u_interp_kts = interpTime(dt, dt_interp, heights, u) * 1.94
 v = np.multiply(-speed, np.cos(direction * np.pi / 180.))
 v_interp_kts = interpTime(dt, dt_interp, heights, v) * 1.94
+dtdz_interp = interpTime(dt, dt_interp, heights, dtdz)
+
+f = interp1d(dt, alt_windmax)
+alt_windmax_interp = f(dt_interp).reshape((-1,))
 
 # Contour levels
 Tlevels = np.arange(np.floor(np.nanmin(T_interp)),
@@ -315,6 +381,41 @@ plt.xlabel('Time UTC')
 plt.ylabel('Altitude AGL (m)')
 plt.title('Wind Speed (kts) and Direction ' + title_today)
 [plt.axvline(t, linestyle='--', color='r') for t in dt]
+
+# Sensible heat flux
+fig7, ax7 = plt.subplots(1, figsize=(8,8))
+plt.xlabel('Sensible Heat Flux (W m$^{-2}$)')
+plt.ylabel('Altitude AGL (m)')
+plt.title('Sensible Heat Flux Evolution')
+[plt.plot(H[:, iplot], alt[:, iplot], label=time_list[iplot],
+	color=(1, 0, 0, alpha[iplot])) 
+	for iplot in np.arange(1, numfiles)]
+ax7.legend()
+
+# Latent heat flux
+fig8, ax8 = plt.subplots(1, figsize=(8,8))
+plt.xlabel('Latent Heat Flux (W m$^{-2}$)')
+plt.ylabel('Altitude AGL (m)')
+plt.title('Latent Heat Flux Evolution')
+[plt.plot(F[:, iplot], alt[:, iplot], label=time_list[iplot],
+	color=(0, 0, 1, alpha[iplot])) 
+	for iplot in np.arange(1, numfiles)]
+ax8.legend()
+
+# Static Stability, Jet max altitude
+vmax = np.round(np.max(np.abs(dtdz_interp)), 2)
+fig9, ax9 = plt.subplots(1, figsize=(16,9))
+cfax9 = plt.pcolormesh(dt_interp, heights, dtdz_interp, 
+	cmap=cmocean.cm.balance, vmin=-vmax, vmax=vmax)
+ax9.plot(dt_interp, alt_windmax_interp, linewidth=3, color='k')
+ax9.xaxis.set_major_locator(mpdates.MinuteLocator(interval=30))
+ax9.xaxis.set_major_formatter(mpdates.DateFormatter('%H:%M'))
+plt.xlabel('Time UTC')
+plt.ylabel('Altitude AGL (m)')
+plt.title('dtheta/dz and wind max altitude ' + title_today)
+cbar9 = fig9.colorbar(cfax9)
+cbar9.ax.set_ylabel('dtheta/dz (K m$^{-1}$)')
+[plt.axvline(t, linestyle='--', color='k') for t in dt]
 
 plt.show(block=False)
 
