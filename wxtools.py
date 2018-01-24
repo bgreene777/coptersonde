@@ -230,6 +230,9 @@ def csv_to_nc(filepath):
 	# Covert AGL to MSL
 	altMSL_ = alt_ + elev_
 
+	# Check for existence of 'pp_nc' folder
+	
+
 	# Initialize nc file
 	fpathArr = filepath.split(os.sep)
 	fpathArr[-2:] = ['pp_nc', fname]
@@ -312,7 +315,9 @@ def csvdir_to_ncdir(dirname):
 	Input: directory path for post-processed coptersonde csv files
 	Loops through directory and converts each csv to nc file using csv_to_nc
 	'''
-
+	fnameArr = glob(os.path.join(dirname, "*.csv"))
+	[csv_to_nc(file) for file in fnameArr]
+	return
 
 def findLatestDir(dirname):
 	'''
