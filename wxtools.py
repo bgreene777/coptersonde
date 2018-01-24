@@ -230,13 +230,17 @@ def csv_to_nc(filepath):
 	# Covert AGL to MSL
 	altMSL_ = alt_ + elev_
 
-	# Check for existence of 'pp_nc' folder
-	
-
-	# Initialize nc file
+	# Determine save directory and filename
 	fpathArr = filepath.split(os.sep)
 	fpathArr[-2:] = ['pp_nc', fname]
 	fpath_save = os.sep + os.path.join(*fpathArr)
+
+	# Check for existence of this directory
+	# If exists, continue; otherwise, mkdir
+	if not os.path.exists(fpath_save.rsplit(os.sep, 1)[0]):
+		os.mkdir(fpath_save.rsplit(os.sep, 1)[0])
+
+	# Initialize nc file
 	rootgrp = netCDF4.Dataset(fpath_save, 'w', format='NETCDF4')
 	# Initialize dimensions - level, lat, lon
 	level = rootgrp.createDimension('level', None)
