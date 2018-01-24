@@ -42,7 +42,7 @@ user = os.getlogin()
 ## Directories ##
 #################
 
-myNextcloud = os.path.join('Users', user, 'Nextcloud', 'thermo')
+myNextcloud = os.sep + os.path.join('Users', user, 'Nextcloud', 'thermo')
 # location of raw .csv and .pos files
 dataDirName = os.path.join(myNextcloud, 'data')
 # location of mesonet location csv
@@ -187,10 +187,11 @@ def csvread_copter(coptercsv):
 
 def collect_nc(date, location):
 	'''
-	Inputs: date (YYYYMMDD), location (4-letter identifier)
+	Inputs: date (YYYYMMDD), location (directory name)
 	Combines and outputs single nc file in same directory
 	'''
-	ncDirPath = os.path.join(, 'bin', 'spam')dataDirName + date + 
+	ncDirPath = os.path.join(dataDirName, 'PBL Transition', date, location, 
+		'pp_nc')
 	fnameArr = glob(os.path.join(datDirPath, "*.nc")) # string array
 
 	return
@@ -199,7 +200,7 @@ def csv_to_nc(filepath):
 	'''
 	Converts individual csv RAOB output to netcdf format
 	Input filepath for csv
-	Outputs new file in same directory
+	Outputs new file in new directory at same level titled 'pp_nc'
 	'''
 	# Load data
 	data = csvread_copter(filepath)
@@ -218,19 +219,22 @@ def csv_to_nc(filepath):
 	# Number of levels
 	nHeights = len(alt_)
 	# Grab filename, change .csv to .nc
-	fname = filepath.split('/')[-1].split('.')[0] + '.nc'
+	fname = filepath.split(os.sep)[-1].split('.')[0] + '.nc'
 	# Grab date and time from filename
 	date_str, time_str = fname.split('-')[0].split('_')
 	dt_ = datetime.strptime(fname.split('-')[0], '%Y%m%d_%H%M%S')
 	timestamp_ = time.mktime(dt_.timetuple())
 	# Find nearest mesonet site
 	meso_ = findSite(lat_, lon_)
-	elev_ = float(meso_.split('/')[2])
+	elev_ = float(meso_.split(os.sep)[2])
 	# Covert AGL to MSL
 	altMSL_ = alt_ + elev_
 
 	# Initialize nc file
-	rootgrp = netCDF4.Dataset(fname, 'w', format='NETCDF4')
+	fpathArr = filepath.split(os.sep)
+	fpathArr[-2:] = ['pp_nc', fname]
+	fpath_save = os.sep + os.path.join(*fpathArr)
+	rootgrp = netCDF4.Dataset(fpath_save, 'w', format='NETCDF4')
 	# Initialize dimensions - level, lat, lon
 	level = rootgrp.createDimension('level', None)
 	lat = rootgrp.createDimension('lat', 1)
@@ -303,6 +307,12 @@ def csv_to_nc(filepath):
 	print '>>%s created successfully!' % fname
 	return
 
+def csvdir_to_ncdir(dirname):
+	'''
+	Input: directory path for post-processed coptersonde csv files
+	Loops through directory and converts each csv to nc file using csv_to_nc
+	'''
+
 
 def findLatestDir(dirname):
 	'''
@@ -311,7 +321,7 @@ def findLatestDir(dirname):
 	'''
 	fnameArr = glob(os.path.join(dirname, '*/*/'))
 	dirCreatedArr = []
-	[dirCreatedArr.append(float(d.split('/')[-3])) for d in fnameArr]
+	[dirCreatedArr.append(float(d.split(os.sep)[-3])) for d in fnameArr]
 	return fnameArr[max(enumerate(dirCreatedArr))[0]] + 'Raw/'
 
 def findLatestCSV(dirname):
