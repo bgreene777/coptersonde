@@ -195,8 +195,10 @@ def collect_nc(date, location):
 	fnameArr = glob(os.path.join(ncDirPath, "*.nc")) # string array of filenames
 	maxAltArr = np.array([])
 	deltaArr = np.array([])
+	timestamp = np.array([])
 	# Initialize dictionary
 	dataDic = {}
+	gattsDic = {}
 	# Loop through to find max alt and spacing - used for defining new nc dims
 	for f in fnameArr:
 		df = netCDF4.Dataset(f, 'r')
@@ -205,26 +207,106 @@ def collect_nc(date, location):
 		deltaArr = np.append(deltaArr, dz)
 		names = df.variables.keys()
 		dims = df.dimensions.keys()
+		gatts = df.ncattrs()
 
 	deltaZ = deltaArr.mean()
 	nHeights = int(maxAltArr.max() / deltaZ)
+	nFiles = len(fnameArr)
 
-	# Set Dictionary Keys
+	# Set Data Dictionary Keys
 	for key in names:
 		dataDic.update({key:[]})
+	# Set gatts dictionary keys
+	for key in gatts:
+		gattsDic.update({key:[]})
 
 	# Loop through files, appending data
 	for f in fnameArr:
 		df = netCDF4.Dataset(f, 'r')
 		n = df.variables.keys()
-		d = df.dimensions.keys()
+		g = df.ncattrs()
 		for key in n:
 			dataDic[key].append(df.variables[key][:])
+		for key in g:
+			gattsDic[key].append(getattr(df, key))
 
+	# Initialize new nc file
+	fname_save = date + '-' + location + '-' + 'all.nc'
+	fpath_save = os.path.join(ncDirPath, fname_save)
+	newnc = netCDF4.Dataset(fpath_save, 'w', format='NETCDF4')
+	# Initialize dimensions - level, lat, lon, time
+	level = newnc.createDimension('level', nHeights)
+	lat = newnc.createDimension('lat', 1)
+	lon = newnc.createDimension('lon', 1)
+	time = newnc.createDimension('time', None)
+	# Initialize variables
+	# Dimensional info
+	latitude = newnc.createVariable('lat', 'f4', ('lat',))
+	longitude = newnc.createVariable('lon', 'f4', ('lon',))
+	levels = newnc.createVariable('level', 'i4', ('level',))
+	t = newnc.createVariable('time', 'f4', ('time',))
+	# Data
+	alt_agl = newnc.createVariable('alt_agl', 'f4', ('level', 'time'))
+	p = newnc.createVariable('pressure', 'f4', ('level', 'time'))
+	T = newnc.createVariable('Temperature', 'f4', ('level', 'time'))
+	Td = newnc.createVariable('Dewpoint', 'f4', ('level', 'time'))
+	RH = newnc.createVariable('RH', 'f4', ('level', 'time'))
+	w = newnc.createVariable('Mixing', 'f4', ('level', 'time'))
+	Theta = newnc.createVariable('Theta', 'f4', ('level', 'time'))
+	Speed = newnc.createVariable('Speed', 'f4', ('level', 'time'))
+	Dir = newnc.createVariable('Dir', 'f4', ('level', 'time'))
+	# Global atts
+	newnc.decription = 'OU Coptersonde vertical profile timeseries'
+	newnc.location_short = gattsDic['location_short'][0]
+	newnc.location_long = gattsDic['location_long'][0]
+	newnc.elevation_MSL_m = gattsDic['elevation_MSL_m'][0]
+	newnc.date_str = gattsDic['date_str'][0]
+	newnc.time_str_beg = gattsDic['time_str'][0]
+	newnc.time_str_end = gattsDic['time_str'][-1]
+	newnc.timestamp_start = gattsDic['timestamp'][0]
+	newnc.timestamp_end = gattsDic['timestamp'][-1]
+	newnc.max_alt_agl_m = np.nanmax(gattsDic['max_alt_agl_m'])
+	# Variable attributes
+	alt_agl.name_long = 'Altitude above ground level'
+	alt_agl.units = 'm'
+	p.name_long = 'Pressure'
+	p.units = 'hPa'
+	T.name_long = 'Temperature'
+	T.units = 'C'
+	Td.name_long = 'Dewpoint Temperature'
+	Td.units = 'C'
+	RH.name_long = 'Relative Humidity'
+	RH.units = 'percent'
+	w.name_long = 'Water Vapor Mixing Ratio'
+	w.units = 'g kg-1'
+	Theta.name_long = 'Potential Temperature'
+	Theta.units = 'K'
+	Speed.name_long = 'Wind Speed'
+	Speed.units = 'm s-1'
+	Dir.name_long = 'Wind Direction'
+	Dir.units = 'degrees'
+	# Assign values
+	latitude[0] = dataDic['lat'][0]
+	longitude[0] = dataDic['lon'][0]
+	for i in range(len(fnameArr)):
+		n = len(dataDic['alt_agl'][i])
+		alt_agl[:n, i] = dataDic['alt_agl'][i]
+		p[:n, i] = dataDic['pressure'][i]
+		T[:n, i] = dataDic['Temperature'][i]
+		RH[:n, i] = dataDic['RH'][i]
+		w[:n, i] = dataDic['Mixing'][i]
+		Theta[:n, i] = dataDic['Theta'][i]
+		Speed[:n, i] = dataDic['Speed'][i]
+		Dir[:n, i] = dataDic['Dir'][i]
 
+	# Assign to unlimited dimension variable
+	levels[:] = np.arange(nHeights)
+	t = gattsDic['timestamp']
 
+	# Close File
+	newnc.close()
 
-
+	print '>>File created successfully!'
 	return
 
 def csv_to_nc(filepath):
