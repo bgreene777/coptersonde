@@ -82,6 +82,16 @@ def e_si(T_C):
 ## UAV Functions ##
 ###################
 
+def print_copter():
+	print '               ___________                   '
+	print '              /    O      \\                 '
+	print '<====>       /      U      \\       <====>   '
+	print '  []________/_______________\\________[]     '
+	print '           ||---------------||               '
+	print '           ||               ||               '
+	print '           ||               ||               '
+	return
+
 def csvread_raw(coptersondefilename):
 	'''
 	Input: filepath of coptersonde csv
