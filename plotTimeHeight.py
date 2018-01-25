@@ -1,5 +1,5 @@
-import matplotlib
-matplotlib.use("TkAgg")
+# import matplotlib
+# matplotlib.use("TkAgg")
 from matplotlib import pyplot as plt
 import matplotlib.dates as mpdates
 from matplotlib import cm
@@ -9,15 +9,24 @@ import numpy.ma as ma
 import csv
 import math
 import os
+import sys
 from glob import glob
 from scipy.interpolate import interp1d
 from datetime import datetime, timedelta
-import Tkinter
-from tkFileDialog import askdirectory
+# import Tkinter
+# from tkFileDialog import askdirectory
 from metpy.constants import dry_air_gas_constant as Rd
 from metpy.constants import water_heat_vaporization as Lv
 from metpy.constants import dry_air_spec_heat_press as cp
 import warnings
+
+'''
+Reads nc file of combined profiles
+From command line, input date (YYYYMMDD) and location of profile
+Brian Greene
+University of Oklahoma
+Last edit: 25 January 2018
+'''
 
 ## Required pacakges & files: cmocean
 ## Change the following directories:
@@ -37,16 +46,21 @@ Rd = 1000. * Rd.magnitude
 Lv = Lv.magnitude
 cp = float(cp.magnitude)
 
-# Select directory
-root = Tkinter.Tk()
-root.withdraw()
-root.update()
-initName = '/Users/briangreene/Nextcloud/thermo/data/PBL Transition/'
-dataDirName = askdirectory(initialdir=initName)
-root.destroy()
+# Directory from input argument
+inputs = sys.argv
 
-#dataDirName = '/Users/briangreene/Nextcloud/thermo/data/CLOUDMAP17/CSV/20170629/OSUF'
-fnameArr = glob(os.path.join(dataDirName, "*.csv")) # string array
+dataDirName = os.sep + os.path.join('Users', os.getlogin(), 'Nextcloud',
+	'thermo', 'data', 'PBL Transition', sys.argv[1], sys.argv[2], 'pp_nc')
+
+# Select directory
+# root = Tkinter.Tk()
+# root.withdraw()
+# root.update()
+# initName = '/Users/briangreene/Nextcloud/thermo/data/PBL Transition/'
+# dataDirName = askdirectory(initialdir=initName)
+# root.destroy()
+
+fnameArr = glob(os.path.join(dataDirName, "*all.nc")) # string array
 
 ## Initialize
 # Be smart enough to find number of heights automatically
