@@ -76,7 +76,10 @@ df = netCDF4.Dataset(fname, 'r')
 # Assign datasets
 nHeights = len(df.variables['level'])
 maxHeight = df.max_alt_agl_m
-time = df.variables['time'][:]
+t = df.variables['time'][:]
+numfiles = len(t)
+time = []
+[time.append(datetime.fromtimestamp(t[i])) for i in range(numfiles)]
 alt = df.variables['alt_agl'][:, :]
 p = df.variables['pressure'][:, :]
 T = df.variables['Temperature'][:, :]
@@ -107,103 +110,103 @@ direction = df.variables['Dir'][:, :]
 # 	findHeights[:size, count] = H
 # 	count += 1
 
-# Now go back and read in data for realz
-nHeights = int(np.nanmax(findHeights) / 10.)
-time = []
-#lat = np.full((nHeights, numfiles), np.nan)
-#lon = np.full((nHeights, numfiles), np.nan)
-alt = np.full((nHeights, numfiles), np.nan)
-p = np.full((nHeights, numfiles), np.nan)
-T = np.full((nHeights, numfiles), np.nan)
-Td = np.full((nHeights, numfiles), np.nan)
-RH = np.full((nHeights, numfiles), np.nan)
-w = np.full((nHeights, numfiles), np.nan)
-theta = np.full((nHeights, numfiles), np.nan)
-speed = np.full((nHeights, numfiles), np.nan)
-direction = np.full((nHeights, numfiles), np.nan)
-numHeightsArr = []
+# # Now go back and read in data for realz
+# nHeights = int(np.nanmax(findHeights) / 10.)
+# time = []
+# #lat = np.full((nHeights, numfiles), np.nan)
+# #lon = np.full((nHeights, numfiles), np.nan)
+# alt = np.full((nHeights, numfiles), np.nan)
+# p = np.full((nHeights, numfiles), np.nan)
+# T = np.full((nHeights, numfiles), np.nan)
+# Td = np.full((nHeights, numfiles), np.nan)
+# RH = np.full((nHeights, numfiles), np.nan)
+# w = np.full((nHeights, numfiles), np.nan)
+# theta = np.full((nHeights, numfiles), np.nan)
+# speed = np.full((nHeights, numfiles), np.nan)
+# direction = np.full((nHeights, numfiles), np.nan)
+# numHeightsArr = []
 
-## Loop through directory and import data
-count = 0
-for fname in fnameArr:
+# ## Loop through directory and import data
+# count = 0
+# for fname in fnameArr:
 
-    if fname.endswith('.csv'):
-    	print '>>Reading file %s' % fname.split('/')[-1]
-    else:
-        print '>>>Wtf are you doing'
-        print fname
-        break
+#     if fname.endswith('.csv'):
+#     	print '>>Reading file %s' % fname.split('/')[-1]
+#     else:
+#         print '>>>Wtf are you doing'
+#         print fname
+#         break
 
 
-    # Initialize instance variables
-    #latitude = []
-    #longitude = []
-    altitude = []
-    pressure = []
-    temp = []
-    dew = []
-    rh = []
-    mix = []
-    pottemp = []
-    spd = []
-    wind = []
-    # Open file
-    f = open(fname)
-    reader = csv.DictReader(f)
-    # Assign
-    for line in reader:
-    	#latitude.append(float(line['Lat']))
-    	#longitude.append(float(line['Lon']))
-    	altitude.append(float(line['AltAGL(m)']))
-    	pressure.append(float(line['p(hPa)']))
-    	temp.append(float(line['T(C)']))
-    	dew.append(float(line['Td(C)']))
-    	rh.append(float(line['RH(percent)']))
-    	# want w in kg kg-1
-    	mix.append(float(line['w(gKg-1)'])/1000.)
-    	pottemp.append(float(line['Theta(K)']))
-    	spd.append(float(line['Speed(ms-1)']))
-    	wind.append(float(line['Dir(deg)']))
+#     # Initialize instance variables
+#     #latitude = []
+#     #longitude = []
+#     altitude = []
+#     pressure = []
+#     temp = []
+#     dew = []
+#     rh = []
+#     mix = []
+#     pottemp = []
+#     spd = []
+#     wind = []
+#     # Open file
+#     f = open(fname)
+#     reader = csv.DictReader(f)
+#     # Assign
+#     for line in reader:
+#     	#latitude.append(float(line['Lat']))
+#     	#longitude.append(float(line['Lon']))
+#     	altitude.append(float(line['AltAGL(m)']))
+#     	pressure.append(float(line['p(hPa)']))
+#     	temp.append(float(line['T(C)']))
+#     	dew.append(float(line['Td(C)']))
+#     	rh.append(float(line['RH(percent)']))
+#     	# want w in kg kg-1
+#     	mix.append(float(line['w(gKg-1)'])/1000.)
+#     	pottemp.append(float(line['Theta(K)']))
+#     	spd.append(float(line['Speed(ms-1)']))
+#     	wind.append(float(line['Dir(deg)']))
 
-    f.close()
+#     f.close()
 
-    # Assign to arrays
-    sz = len(temp)
-    #lat[:sz, count] = latitude
-    #lon[:sz, count] = longitude
-    alt[:sz, count] = altitude
-    p[:sz, count] = pressure
-    T[:sz, count] = temp
-    Td[:sz, count] = dew
-    RH[:sz, count] = rh
-    w[:sz, count] = mix
-    theta[:sz, count] = pottemp
-    speed[:sz, count] = spd
-    direction[:sz, count] = wind
+#     # Assign to arrays
+#     sz = len(temp)
+#     #lat[:sz, count] = latitude
+#     #lon[:sz, count] = longitude
+#     alt[:sz, count] = altitude
+#     p[:sz, count] = pressure
+#     T[:sz, count] = temp
+#     Td[:sz, count] = dew
+#     RH[:sz, count] = rh
+#     w[:sz, count] = mix
+#     theta[:sz, count] = pottemp
+#     speed[:sz, count] = spd
+#     direction[:sz, count] = wind
 
-    # Mask values
-    #lat = ma.masked_invalid(lat)
-    #lon = ma.masked_invalid(lon)
-    alt = ma.masked_invalid(alt)
-    p = ma.masked_invalid(p)
-    T = ma.masked_invalid(T)
-    Td = ma.masked_invalid(Td)
-    RH = ma.masked_invalid(RH)
-    w = ma.masked_invalid(w)
-    theta = ma.masked_invalid(theta)
-    speed = ma.masked_invalid(speed)
-    direction = ma.masked_invalid(direction)
+#     # Mask values
+#     #lat = ma.masked_invalid(lat)
+#     #lon = ma.masked_invalid(lon)
+#     alt = ma.masked_invalid(alt)
+#     p = ma.masked_invalid(p)
+#     T = ma.masked_invalid(T)
+#     Td = ma.masked_invalid(Td)
+#     RH = ma.masked_invalid(RH)
+#     w = ma.masked_invalid(w)
+#     theta = ma.masked_invalid(theta)
+#     speed = ma.masked_invalid(speed)
+#     direction = ma.masked_invalid(direction)
 
-    time.append(datetime.strptime(fname.split('/')[-1][0:15], '%Y%m%d_%H%M%S'))
-    numHeightsArr.append(sz)
+#     time.append(datetime.strptime(fname.split('/')[-1][0:15], '%Y%m%d_%H%M%S'))
+#     numHeightsArr.append(sz)
 
-    count += 1
+#     count += 1
 
 
 ## Set up Dimensions
 time_list = [i.strftime('%H:%M:%S') for i in time]
 title_today = time[0].strftime('%d %b %Y')
-maxHeight = max(numHeightsArr)
+#maxHeight = max(numHeightsArr)
 
 numInterp = 1.
 delta_t = 60. * numInterp
