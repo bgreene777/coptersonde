@@ -6,7 +6,7 @@ from matplotlib import cm
 import cmocean
 import numpy as np
 import numpy.ma as ma
-import csv
+import netCDF4
 import math
 import os
 import sys
@@ -60,25 +60,52 @@ dataDirName = os.sep + os.path.join('Users', os.getlogin(), 'Nextcloud',
 # dataDirName = askdirectory(initialdir=initName)
 # root.destroy()
 
-fnameArr = glob(os.path.join(dataDirName, "*all.nc")) # string array
+# Filename based off user input
+fname = glob(os.path.join(dataDirName, "*all.nc"))[0] # string array
+
+# Import nc file
+print '>>Reading file: %s' % fname.split(os.sep)[-1]
+df = netCDF4.Dataset(fname, 'r')
+# Optional data dictionary for irregular datasets
+# dataDic = {}
+# varNames = df.variables.keys()
+# for key in varNames:
+# 	dataDic.update({key:[]})
+# 	dataDic[key].append(df.variables[key][:, :])
+
+# Assign datasets
+nHeights = len(df.variables['level'])
+maxHeight = df.max_alt_agl_m
+time = df.variables['time'][:]
+alt = df.variables['alt_agl'][:, :]
+p = df.variables['pressure'][:, :]
+T = df.variables['Temperature'][:, :]
+Td = df.variables['Dewpoint'][:, :]
+RH = df.variables['RH'][:, :]
+w = df.variables['Mixing'][:, :]
+theta = df.variables['Theta'][:, :]
+speed = df.variables['Speed'][:, :]
+direction = df.variables['Dir'][:, :]
+
+
 
 ## Initialize
 # Be smart enough to find number of heights automatically
-nHtest = 1000
-numfiles = len(fnameArr)
-findHeights = np.full((nHtest, numfiles), np.nan)
-count = 0
-for f in fnameArr:
-	H = []
-	a = open(f)
-	reader = csv.DictReader(a)
-	for line in reader:
-		H.append(float(line['AltAGL(m)']))
+# nHtest = 1000
+# numfiles = len(fnameArr)
+# findHeights = np.full((nHtest, numfiles), np.nan)
+# count = 0
+# for f in fnameArr:
+# 	H = []
+# 	a = open(f)
+# 	reader = csv.DictReader(a)
+# 	for line in reader:
+# 		H.append(float(line['AltAGL(m)']))
 
-	a.close()
-	size = len(H)
-	findHeights[:size, count] = H
-	count += 1
+# 	a.close()
+# 	size = len(H)
+# 	findHeights[:size, count] = H
+# 	count += 1
 
 # Now go back and read in data for realz
 nHeights = int(np.nanmax(findHeights) / 10.)
