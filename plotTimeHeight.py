@@ -282,7 +282,8 @@ def interpTime(t, tnew, z, data):
 		fnew = f(tnew)
 		data_interp[i,:] = fnew
 
-	data_interp = ma.masked_invalid(data_interp)
+	#data_interp = ma.masked_invalid(data_interp)
+	data_interp = ma.masked_greater(data_interp, 1.e20)
 	return data_interp
 
 T_interp = interpTime(dt, dt_interp, heights, T)
