@@ -303,6 +303,7 @@ def collect_nc(date, location):
 		alt_agl[:n, i] = dataDic['alt_agl'][i]
 		p[:n, i] = dataDic['pressure'][i]
 		T[:n, i] = dataDic['Temperature'][i]
+		Td[:n, i] = dataDic['Dewpoint'][i]
 		RH[:n, i] = dataDic['RH'][i]
 		w[:n, i] = dataDic['Mixing'][i]
 		Theta[:n, i] = dataDic['Theta'][i]
@@ -387,8 +388,8 @@ def csv_to_nc(filepath):
 	Dir = rootgrp.createVariable('Dir', 'f4', ('level',))
 	# Global attributes
 	rootgrp.decription = 'OU Coptersonde vertical profile'
-	rootgrp.location_short = meso_.split('/')[0]
-	rootgrp.location_long = meso_.split('/')[1]
+	rootgrp.location_short = meso_.split(os.sep)[0]
+	rootgrp.location_long = meso_.split(os.sep)[1]
 	rootgrp.elevation_MSL_m = elev_
 	rootgrp.date_str = date_str
 	rootgrp.time_str = time_str
