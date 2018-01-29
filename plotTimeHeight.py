@@ -11,7 +11,7 @@ import math
 import os
 import sys
 from glob import glob
-from scipy.interpolate import interp1d
+from scipy.interpolate import interp1d, UnivariateSpline
 from datetime import datetime, timedelta
 # import Tkinter
 # from tkFileDialog import askdirectory
@@ -80,15 +80,15 @@ t = df.variables['time'][:]
 numfiles = len(t)
 time = []
 [time.append(datetime.fromtimestamp(t[i])) for i in range(numfiles)]
-alt = df.variables['alt_agl'][:, :]
-p = df.variables['pressure'][:, :]
-T = df.variables['Temperature'][:, :]
-Td = df.variables['Dewpoint'][:, :]
-RH = df.variables['RH'][:, :]
-w = df.variables['Mixing'][:, :]
-theta = df.variables['Theta'][:, :]
-speed = df.variables['Speed'][:, :]
-direction = df.variables['Dir'][:, :]
+alt = df.variables['alt_agl'][:, :].filled(np.nan)
+p = df.variables['pressure'][:, :].filled(np.nan)
+T = df.variables['Temperature'][:, :].filled(np.nan)
+Td = df.variables['Dewpoint'][:, :].filled(np.nan)
+RH = df.variables['RH'][:, :].filled(np.nan)
+w = df.variables['Mixing'][:, :].filled(np.nan)
+theta = df.variables['Theta'][:, :].filled(np.nan)
+speed = df.variables['Speed'][:, :].filled(np.nan)
+direction = df.variables['Dir'][:, :].filled(np.nan)
 
 
 
@@ -260,10 +260,9 @@ for j in np.arange(0, numfiles):
 dtdz = np.full((nHeights, numfiles), np.nan)
 alt_windmax = np.full((1, numfiles), np.nan)
 for j in np.arange(0, numfiles):
-	alt_windmax[0, j] = alt[np.argmax(speed[:, j]), j]
+	alt_windmax[0, j] = alt[np.nanargmax(speed[:, j]), j]
 	for i in np.arange(1, nHeights):
 		dtdz[i, j] = (theta[i, j] - theta[i-1, j]) / dh
-
 
 ## Set up plotting parameters
 # Alpha levels
@@ -281,10 +280,7 @@ def interpTime(t, tnew, z, data):
 		f = interp1d(t,data[i,:])
 		fnew = f(tnew)
 		data_interp[i,:] = fnew
-
-	#data_interp = ma.masked_invalid(data_interp)
-	data_interp = ma.masked_greater(data_interp, 1.e20)
-	return data_interp
+	return ma.masked_invalid(data_interp)
 
 T_interp = interpTime(dt, dt_interp, heights, T)
 Td_interp = interpTime(dt, dt_interp, heights, Td)
