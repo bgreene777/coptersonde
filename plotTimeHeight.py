@@ -18,7 +18,7 @@ import warnings
 
 '''
 Reads nc file of combined profiles
-From command line, input date (YYYYMMDD) and location of profile
+Prompts user for date (YYYYMMDD) and location of profiles
 Brian Greene
 University of Oklahoma
 Last edit: 25 January 2018
@@ -43,10 +43,12 @@ Lv = Lv.magnitude
 cp = float(cp.magnitude)
 
 # Directory from input argument
-inputs = sys.argv
+#inputs = sys.argv
+procDate = raw_input('>>Enter date of profiles (YYYYMMDD): ')
+procLoc = raw_input('>>Enter location: ')
 
 dataDirName = os.sep + os.path.join('Users', os.getlogin(), 'Nextcloud',
-	'thermo', 'data', 'PBL Transition', sys.argv[1], sys.argv[2], 'pp_nc')
+	'thermo', 'data', 'PBL Transition', procDate, procLoc, 'pp_nc')
 
 # Filename based off user input
 fname = glob(os.path.join(dataDirName, "*all.nc"))[0] # string array
@@ -299,25 +301,25 @@ plt.ylabel('Altitude AGL (m)')
 plt.title('Wind Speed (kts) and Direction ' + title_today)
 [plt.axvline(t, linestyle='--', color='r') for t in dt]
 
-# Sensible heat flux
-fig7, ax7 = plt.subplots(1, figsize=(8,8))
-plt.xlabel('Sensible Heat Flux (W m$^{-2}$)')
-plt.ylabel('Altitude AGL (m)')
-plt.title('Sensible Heat Flux Evolution')
-[plt.plot(H[:, iplot], alt[:, iplot], label=time_list[iplot],
-	color=(1, 0, 0, alpha[iplot])) 
-	for iplot in np.arange(1, numfiles)]
-ax7.legend()
+# # Sensible heat flux
+# fig7, ax7 = plt.subplots(1, figsize=(8,8))
+# plt.xlabel('Sensible Heat Flux (W m$^{-2}$)')
+# plt.ylabel('Altitude AGL (m)')
+# plt.title('Sensible Heat Flux Evolution')
+# [plt.plot(H[:, iplot], alt[:, iplot], label=time_list[iplot],
+# 	color=(1, 0, 0, alpha[iplot])) 
+# 	for iplot in np.arange(1, numfiles)]
+# ax7.legend()
 
-# Latent heat flux
-fig8, ax8 = plt.subplots(1, figsize=(8,8))
-plt.xlabel('Latent Heat Flux (W m$^{-2}$)')
-plt.ylabel('Altitude AGL (m)')
-plt.title('Latent Heat Flux Evolution')
-[plt.plot(F[:, iplot], alt[:, iplot], label=time_list[iplot],
-	color=(0, 0, 1, alpha[iplot])) 
-	for iplot in np.arange(1, numfiles)]
-ax8.legend()
+# # Latent heat flux
+# fig8, ax8 = plt.subplots(1, figsize=(8,8))
+# plt.xlabel('Latent Heat Flux (W m$^{-2}$)')
+# plt.ylabel('Altitude AGL (m)')
+# plt.title('Latent Heat Flux Evolution')
+# [plt.plot(F[:, iplot], alt[:, iplot], label=time_list[iplot],
+# 	color=(0, 0, 1, alpha[iplot])) 
+# 	for iplot in np.arange(1, numfiles)]
+# ax8.legend()
 
 # Static Stability, Jet max altitude
 vmax = np.round(np.max(np.abs(dtdz_interp)), 2)
@@ -338,12 +340,10 @@ cbar9.ax.set_ylabel('dtheta/dz (K m$^{-1}$)')
 # plt.draw()
 # plt.pause(0.01)
 
-# ## Save 
-# #s = raw_input('>>Save images? y/n ')
-# s = []
-# while s != 'y' and s != 'n':
-# 	s = raw_input('>>Save images? y/n ')
-s = 'y'
+# Save 
+s = raw_input('>>Save images? y/n ')
+while s != 'y' and s != 'n':
+	s = raw_input('>>Save images? y/n ')
 
 if s == 'y':
 	# Save name
@@ -382,13 +382,20 @@ elif s == 'n':
 else:
 	print '>>How did you get here??'
 
-plt.pause(2)
+sh = raw_input('>>Show images? y/n ')
+while sh != 'y' and sh != 'n':
+	sh = raw_input('>>Show images? y/n ')
+
+if sh == 'y':
+	print 'Close figures to finish. '
+	plt.show()
 
 ## Quit when ready
 #q = raw_input('>>Press enter to quit. ')
-q = []
-while q != '':
-	q = raw_input('>>>Press enter to quit. ')
+# q = []
+# while q != '':
+# 	plt.pause(2)
+# 	q = raw_input('>>>Press enter to quit. ')
 
-plt.close('all')
+# plt.close('all')
 print 'Analysis Complete.'
