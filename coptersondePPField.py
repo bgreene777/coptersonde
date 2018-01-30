@@ -54,15 +54,19 @@ mission = 'ISOBAR'
 myNextcloud = sep + os.path.join('Users', user, 'Nextcloud', 'thermo')
 # location of raw .csv and .pos files
 if isMac:
-    dataDirName = os.path.join(myNextcloud, 'data', mission)
+    dataDirName = sep + os.path.join(myNextcloud, 'data', mission)
 else:
-    dataDirName = os.path.join('Users', user, 'Desktop', 'CopterSonde_Scripts',
-        'solutions')
+    dataDirName = sep + os.path.join('Users', user, 'Desktop', 
+        'CopterSonde_Scripts', 'solutions')
 
 # location of mesonet location csv
 mesocsv = os.path.join(myNextcloud, 'documentation', 'Mesonet', 'geoinfo.csv')
 # location of Logos.png
-logoName = os.path.join(myNextcloud, 'documentation', 'LogosHorizLores.png')
+if isMac:
+    logoName = os.path.join(myNextcloud, 'documentation', 'LogosHorizLores.png')
+else:
+    logoName = sep + os.path.join('Users', user, 'Desktop', 
+        'CopterSonde_Scripts', 'Logos.png')
 # location to locally save csv and png output files
 if isMac:
     folderSaveFile = sep + os.path.join('Users', user, 'Documents', 
@@ -73,7 +77,7 @@ else:
     folderSaveFile = sep + os.path.join('Users', user, 'Desktop', 
         'CopterSonde_Scripts', 'RAOB') 
     folderSavePNG = sep + os.path.join('Users', user, 'Desktop', 
-        'CopterSonde_Scripts', 'Figures')
+        'CopterSonde_Scripts', 'Plots')
 
 ##################################
 ## Setup and Raw File Selection ##
@@ -82,7 +86,7 @@ else:
 # Ignore common warnings
 warnings.filterwarnings("ignore",".*GUI is implemented.*")
 warnings.filterwarnings("ignore",".*mean of empty slice.*")
-warnings.filterwarnings("ignore",".*invalid value encountered in less.*")
+np.seterr(invalid='ignore')
 
 # If on PC, search for file in Desktop/Coptersonde_scripts/solutions/
 # Otherwise, look for data on Nextcloud
@@ -677,9 +681,8 @@ w = np.multiply(RHmean / 100., ws * 1000.)
 if isRH:
     lclpres, lcltemp = mcalc.lcl(pres[0] * units.mbar, 
         Tmean[0] * units.degC, Td[0] * units.degC)
-    print 'LCL Pressure: {0:5.2f} {1}'.format(lclpres.magnitude, lclpres.units)
-    print 'LCL Temperature: {0:5.2f} {1}'.format(lcltemp.magnitude, 
-        lcltemp.units)
+    print 'LCL Pressure: {}'.format(lclpres)
+    print 'LCL Temperature: {}'.format(lcltemp)
 
     # parcel profile
     # determine if there are points sampled above lcl
@@ -700,8 +703,8 @@ if isRH:
         isbelowlcl = 0
 
     # CAPE
-    SBCAPE = wxtools.uavCAPE(Tmean * units.degC, prof, pres * units.hPa)
-    print 'Parcel Buoyancy: {0:4.2f} {1}'.format(SBCAPE.magnitude, SBCAPE.units)
+    SBCAPE = wxtools.uavCAPE(Tmean * units.degC, prof, pres)
+    print 'Parcel Buoyancy: {}'.format(SBCAPE)
 else:
     isbelowlcl = 0
 

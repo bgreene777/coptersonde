@@ -593,7 +593,8 @@ def getMesoData(procYear, procMonth, procDay, procStation):
 		fd = urllib2.urlopen(URL)
 		data_long = fd.read()
 		data = data_long.split('\n')
-		time_, RH_, T2m_, T9m_, speed_, direction_, p_, srad_ = ([] for i in range(8))
+		time_, RH_, T2m_, T9m_, speed_, direction_, p_, srad_ = (
+			[] for i in range(8))
 
 		for i in np.arange(3, len(data)-1):
 			data_short = data[i].split()
@@ -607,7 +608,7 @@ def getMesoData(procYear, procMonth, procDay, procStation):
 			srad_.append(float(data_short[13]))
 
 		speed_kts = [i * 1.94 for i in speed_]
-		u,v = mcalc.get_wind_components(speed_kts*units.kts, direction_ * units.deg)
+		u,v= mcalc.get_wind_components(speed_kts*units.kts,direction_*units.deg)
 		u = u.to(units.kts) / units.kts
 		v = v.to(units.kts) / units.kts
 
@@ -639,7 +640,7 @@ def uavCAPE(Tenv, Tprof, pressure):
 	'''
 	dlnp = []
 	for i in range(len(Tenv) - 1):
-	    dlnp.append(np.abs(pressure[i+1] - pressure[i]) / pressure[i])
+	    dlnp.append((np.abs(pressure[i+1] - pressure[i]) / pressure[i]))
 
 	dT = Tprof.to('kelvin') - Tenv.to('kelvin')
 	dCAPE = dT[:-1] * dlnp
