@@ -44,12 +44,8 @@ metpy, cmocean, geopy, mesonetgeoinfo.csv, Basemap
 '''
 Operating system and user agnostic
 '''
-user = wxtools.user
+user = wxtools.getUser(printos=True)
 sep = os.sep
-if sep == '/':
-    isMac = True
-else:
-    isMac = False
 
 # Mission name: PBL Transition, CLOUDMAP, ISOBAR, etc.
 mission = 'ISOBAR'
@@ -57,7 +53,11 @@ mission = 'ISOBAR'
 # nextcloud directory
 myNextcloud = sep + os.path.join('Users', user, 'Nextcloud', 'thermo')
 # location of raw .csv and .pos files
-dataDirName = os.path.join(myNextcloud, 'data', mission)
+if isMac:
+    dataDirName = os.path.join(myNextcloud, 'data', mission)
+else:
+    dataDirName = os.path.join('Users')
+
 # location of mesonet location csv
 mesocsv = os.path.join(myNextcloud, 'documentation', 'Mesonet', 'geoinfo.csv')
 # location of Logos.png
@@ -65,16 +65,14 @@ logoName = os.path.join(myNextcloud, 'documentation', 'LogosHorizLores.png')
 # location to locally save csv and png output files
 if isMac:
     folderSaveFile = sep + os.path.join('Users', user, 'Documents', 
-        'Coptersonde', mission, 'Data') + sep
+        'Coptersonde', mission, 'Data')
     folderSavePNG = sep + os.path.join('Users', user, 'Documents', 
-        'Coptersonde', mission, 'Figures') + sep
-elif not isMac:
-    folderSaveFile = sep + os.path.join('Users', user, 'Desktop', 
-        'Coptersonde_scripts', 'RAOB') + sep
-    folderSavePNG = sep + os.path.join('Users', user, 'Desktop', 
-        'Coptersonde_scripts', 'Figures') + sep
+        'Coptersonde', mission, 'Figures')
 else:
-    print '>>Error determining OS '
+    folderSaveFile = sep + os.path.join('Users', user, 'Desktop', 
+        'Coptersonde_scripts', 'RAOB') 
+    folderSavePNG = sep + os.path.join('Users', user, 'Desktop', 
+        'Coptersonde_scripts', 'Figures')
 
 ##################################
 ## Setup and Raw File Selection ##
@@ -85,46 +83,57 @@ warnings.filterwarnings("ignore",".*GUI is implemented.*")
 warnings.filterwarnings("ignore",".*mean of empty slice.*")
 warnings.filterwarnings("ignore",".*invalid value encountered in less.*")
 
-# Select file
-autofile = raw_input('>>>Use latest CSV? y/n ')
-while autofile != 'y' and autofile != 'n':
-    autofile = raw_input('>>>Use latest CSV? y/n ')
+# If on PC, search for file in Desktop/Coptersonde_scripts/solutions/
+# Otherwise, look for data on Nextcloud
 
-if autofile == 'y':
-    filename = wxtools.findLatestCSV(dataDirName)
-elif autofile == 'n':
-    autodir = raw_input('>>>Use latest directory? y/n ')
-    while autodir != 'y' and autodir != 'n':
-        autodir = raw_input('>>>Use latest directory? y/n ')
-    if autodir == 'y':
-        PBLdir = wxtools.findLatestDir(dataDirName)
-        print '>>>Please select CSV.'
-        root = Tkinter.Tk()
-        root.withdraw()
-        root.update()
-        filename = askopenfilename(initialdir=PBLdir)
-        root.destroy()
+if isMac:
+    # Select file
+    autofile = raw_input('>>Use latest CSV? y/n ')
+    while autofile != 'y' and autofile != 'n':
+        autofile = raw_input('>>Use latest CSV? y/n ')
+
+    if autofile == 'y':
+        print '>>Searching Nextcloud for data '
+        filename = wxtools.findLatestCSV(dataDirName)
+    elif autofile == 'n':
+        autodir = raw_input('>>Use latest directory? y/n ')
+        while autodir != 'y' and autodir != 'n':
+            autodir = raw_input('>>Use latest directory? y/n ')
+        if autodir == 'y':
+            PBLdir = wxtools.findLatestDir(dataDirName)
+            print '>>Please select CSV.'
+            root = Tkinter.Tk()
+            root.withdraw()
+            root.update()
+            filename = askopenfilename(initialdir=PBLdir)
+            root.destroy()
+        else:
+            print '>>Please select CSV.'
+            root = Tkinter.Tk()
+            root.withdraw()
+            root.update()
+            filename = askopenfilename(initialdir=dataDirName)
+            root.destroy()
     else:
-        print '>>>Please select CSV.'
-        root = Tkinter.Tk()
-        root.withdraw()
-        root.update()
-        filename = askopenfilename(initialdir = dataDirName)
-        root.destroy()
-else:
-    print 'No file selected!'
+        print 'No file selected!'
 
-fname = filename.rsplit('/', 1)[-1]
-print 'CSV file selected: %s' % fname
+    fname = filename.rsplit('/', 1)[-1]
+    print 'CSV file selected: %s' % fname
+elif not isMac:
+    root = Tkinter.Tk()
+    root.withdraw()
+    root.update()
+    filename = askopenfilename(initialdir=)
+
 
 # Copter Number
 copterNum = fname[11]
 #copterNum = '1'
 
 # Ask if ppk
-dgpsFlag = raw_input('>>>PPK? y/n ')
+dgpsFlag = raw_input('>>PPK? y/n ')
 while dgpsFlag != 'y' and dgpsFlag != 'n':
-    dgpsFlag = raw_input('>>>PPK? y/n ')
+    dgpsFlag = raw_input('>>PPK? y/n ')
 
 if dgpsFlag == 'y':
     dgpsFlag = 1
