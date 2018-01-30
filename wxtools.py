@@ -26,10 +26,11 @@ import netCDF4
 ## Version ##
 #############
 '''
-Updated 24 January 2018
+Updated 30 January 2018
 Brian Greene
 University of Oklahoma
 Various subroutines for use with OU Coptersonde to atuomate calculations
+Required additional packages on Anaconda: cmoceans, metpy, netCDF4, geopy
 '''
 
 ##############################
@@ -42,17 +43,17 @@ def getUser(printos=False):
 		isMac = True
 		if printos:
 			print '>>OS determined: MacOS'
-		return os.getlogin()	
+		return os.getlogin(), isMac	
 	elif sep == '\\':
 		isMac = False
 		if printos:
 			print '>>OS determined: Windows'
-		return os.getenv('username')
+		return os.getenv('username'), isMac
 	else:
 		print '>>Error determining OS'
-		return ''
+		return '', None
 
-user = getUser()
+user = getUser()[0]
 
 #################
 ## Directories ##
