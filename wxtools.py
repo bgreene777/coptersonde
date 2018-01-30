@@ -202,6 +202,12 @@ def collect_nc(date, location):
 	'''
 	ncDirPath = os.path.join(dataDirName, 'PBL Transition', date, location, 
 		'pp_nc')
+	# Check if *all.nc file already exists before doing anything else
+	allncName = glob(os.path.join(ncDirPath, '*all.nc'))
+	if len(allncName) != 0:
+		print '>>Composite nc file already exists. Please delete to continue. '
+		print '>>Filename: ' + allncName[0]
+		return
 	fnameArr = glob(os.path.join(ncDirPath, "*.nc")) # string array of filenames
 	maxAltArr = np.array([])
 	deltaArr = np.array([])
