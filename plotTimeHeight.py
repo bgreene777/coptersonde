@@ -1,5 +1,3 @@
-# import matplotlib
-# matplotlib.use("TkAgg")
 from matplotlib import pyplot as plt
 import matplotlib.dates as mpdates
 from matplotlib import cm
@@ -13,8 +11,6 @@ import sys
 from glob import glob
 from scipy.interpolate import interp1d, UnivariateSpline
 from datetime import datetime, timedelta
-# import Tkinter
-# from tkFileDialog import askdirectory
 from metpy.constants import dry_air_gas_constant as Rd
 from metpy.constants import water_heat_vaporization as Lv
 from metpy.constants import dry_air_spec_heat_press as cp
@@ -52,14 +48,6 @@ inputs = sys.argv
 dataDirName = os.sep + os.path.join('Users', os.getlogin(), 'Nextcloud',
 	'thermo', 'data', 'PBL Transition', sys.argv[1], sys.argv[2], 'pp_nc')
 
-# Select directory
-# root = Tkinter.Tk()
-# root.withdraw()
-# root.update()
-# initName = '/Users/briangreene/Nextcloud/thermo/data/PBL Transition/'
-# dataDirName = askdirectory(initialdir=initName)
-# root.destroy()
-
 # Filename based off user input
 fname = glob(os.path.join(dataDirName, "*all.nc"))[0] # string array
 
@@ -89,119 +77,6 @@ w = df.variables['Mixing'][:, :].filled(np.nan)
 theta = df.variables['Theta'][:, :].filled(np.nan)
 speed = df.variables['Speed'][:, :].filled(np.nan)
 direction = df.variables['Dir'][:, :].filled(np.nan)
-
-
-
-## Initialize
-# Be smart enough to find number of heights automatically
-# nHtest = 1000
-# numfiles = len(fnameArr)
-# findHeights = np.full((nHtest, numfiles), np.nan)
-# count = 0
-# for f in fnameArr:
-# 	H = []
-# 	a = open(f)
-# 	reader = csv.DictReader(a)
-# 	for line in reader:
-# 		H.append(float(line['AltAGL(m)']))
-
-# 	a.close()
-# 	size = len(H)
-# 	findHeights[:size, count] = H
-# 	count += 1
-
-# # Now go back and read in data for realz
-# nHeights = int(np.nanmax(findHeights) / 10.)
-# time = []
-# #lat = np.full((nHeights, numfiles), np.nan)
-# #lon = np.full((nHeights, numfiles), np.nan)
-# alt = np.full((nHeights, numfiles), np.nan)
-# p = np.full((nHeights, numfiles), np.nan)
-# T = np.full((nHeights, numfiles), np.nan)
-# Td = np.full((nHeights, numfiles), np.nan)
-# RH = np.full((nHeights, numfiles), np.nan)
-# w = np.full((nHeights, numfiles), np.nan)
-# theta = np.full((nHeights, numfiles), np.nan)
-# speed = np.full((nHeights, numfiles), np.nan)
-# direction = np.full((nHeights, numfiles), np.nan)
-# numHeightsArr = []
-
-# ## Loop through directory and import data
-# count = 0
-# for fname in fnameArr:
-
-#     if fname.endswith('.csv'):
-#     	print '>>Reading file %s' % fname.split('/')[-1]
-#     else:
-#         print '>>>Wtf are you doing'
-#         print fname
-#         break
-
-
-#     # Initialize instance variables
-#     #latitude = []
-#     #longitude = []
-#     altitude = []
-#     pressure = []
-#     temp = []
-#     dew = []
-#     rh = []
-#     mix = []
-#     pottemp = []
-#     spd = []
-#     wind = []
-#     # Open file
-#     f = open(fname)
-#     reader = csv.DictReader(f)
-#     # Assign
-#     for line in reader:
-#     	#latitude.append(float(line['Lat']))
-#     	#longitude.append(float(line['Lon']))
-#     	altitude.append(float(line['AltAGL(m)']))
-#     	pressure.append(float(line['p(hPa)']))
-#     	temp.append(float(line['T(C)']))
-#     	dew.append(float(line['Td(C)']))
-#     	rh.append(float(line['RH(percent)']))
-#     	# want w in kg kg-1
-#     	mix.append(float(line['w(gKg-1)'])/1000.)
-#     	pottemp.append(float(line['Theta(K)']))
-#     	spd.append(float(line['Speed(ms-1)']))
-#     	wind.append(float(line['Dir(deg)']))
-
-#     f.close()
-
-#     # Assign to arrays
-#     sz = len(temp)
-#     #lat[:sz, count] = latitude
-#     #lon[:sz, count] = longitude
-#     alt[:sz, count] = altitude
-#     p[:sz, count] = pressure
-#     T[:sz, count] = temp
-#     Td[:sz, count] = dew
-#     RH[:sz, count] = rh
-#     w[:sz, count] = mix
-#     theta[:sz, count] = pottemp
-#     speed[:sz, count] = spd
-#     direction[:sz, count] = wind
-
-#     # Mask values
-#     #lat = ma.masked_invalid(lat)
-#     #lon = ma.masked_invalid(lon)
-#     alt = ma.masked_invalid(alt)
-#     p = ma.masked_invalid(p)
-#     T = ma.masked_invalid(T)
-#     Td = ma.masked_invalid(Td)
-#     RH = ma.masked_invalid(RH)
-#     w = ma.masked_invalid(w)
-#     theta = ma.masked_invalid(theta)
-#     speed = ma.masked_invalid(speed)
-#     direction = ma.masked_invalid(direction)
-
-#     time.append(datetime.strptime(fname.split('/')[-1][0:15], '%Y%m%d_%H%M%S'))
-#     numHeightsArr.append(sz)
-
-#     count += 1
-
 
 ## Set up Dimensions
 time_list = [i.strftime('%H:%M:%S') for i in time]
@@ -331,6 +206,7 @@ if thetalevels.size == 0:
 else:
 	isPlottheta = 1
 
+
 ## Plot
 # Temperature
 if isPlotT:
@@ -458,42 +334,47 @@ cbar9 = fig9.colorbar(cfax9)
 cbar9.ax.set_ylabel('dtheta/dz (K m$^{-1}$)')
 [plt.axvline(t, linestyle='--', color='k') for t in dt]
 
-plt.show(block=False)
+#plt.show()
+# plt.draw()
+# plt.pause(0.01)
 
-## Save 
-s = raw_input('>>Save images? y/n ')
-while s != 'y' and s != 'n':
-	s = raw_input('>>Save images? y/n ')
+# ## Save 
+# #s = raw_input('>>Save images? y/n ')
+# s = []
+# while s != 'y' and s != 'n':
+# 	s = raw_input('>>Save images? y/n ')
+s = 'y'
 
 if s == 'y':
-	saveNameBase = time[0].strftime('%Y%m%d') + '-' + dataDirName[-4:]
-	dirName = '/Users/briangreene/Documents/Coptersonde/KAEFS/Figures/' + \
-		time[0].strftime('%Y%m%d') + '/'
+	# Save name
+	saveNameBase = df.date_str + '_' + df.location_short
+	saveDirName = os.sep + os.path.join('Users', os.getlogin(), 'Desktop', 
+		saveNameBase)
+	# Check for existence of folder
+	if not os.path.exists(saveDirName):
+		os.mkdir(saveDirName)
 
-	#savePNG1 = '/Users/briangreene/Desktop/%s_%s' % (saveNameBase, 'Temperature')
-	savePNG1 = '%s%s_%s' % (dirName, saveNameBase, 'Temperature')
+	savePNG1 = os.path.join(saveDirName, saveNameBase + '_Temperature.png')
 	fig1.savefig(savePNG1)
-	print '>>Saving file %s' % savePNG1.split('/')[-1]
-	#savePNG2 = '/Users/briangreene/Desktop/%s_%s' % (saveNameBase, 'Dewpoint')
-	savePNG2 = '%s%s_%s' % (dirName, saveNameBase, 'Dewpoint')
+	print '>>Saving file %s' % savePNG1.split(os.sep)[-1]
+	savePNG2 = os.path.join(saveDirName, saveNameBase + '_Dewpoint.png')
 	fig2.savefig(savePNG2)
-	print '>>Saving file %s' % savePNG2.split('/')[-1]
-	#savePNG3 = '/Users/briangreene/Desktop/%s_%s' % (saveNameBase, 'RH')
-	savePNG3 = '%s%s_%s' % (dirName, saveNameBase, 'RH')
+	print '>>Saving file %s' % savePNG2.split(os.sep)[-1]
+	savePNG3 = os.path.join(saveDirName, saveNameBase + '_RH.png')
 	fig3.savefig(savePNG3)
-	print '>>Saving file %s' % savePNG3.split('/')[-1]
-	#savePNG4 = '/Users/briangreene/Desktop/%s_%s' % (saveNameBase, 'Theta')
-	savePNG4 = '%s%s_%s' % (dirName, saveNameBase, 'Theta')
+	print '>>Saving file %s' % savePNG3.split(os.sep)[-1]
+	savePNG4 = os.path.join(saveDirName, saveNameBase + '_Theta.png')
 	fig4.savefig(savePNG4)
-	print '>>Saving file %s' % savePNG4.split('/')[-1]
-	#savePNG5 = '/Users/briangreene/Desktop/%s_%s' % (saveNameBase, 'Mixing')
-	savePNG5 = '%s%s_%s' % (dirName, saveNameBase, 'Mixing')
+	print '>>Saving file %s' % savePNG4.split(os.sep)[-1]
+	savePNG5 = os.path.join(saveDirName, saveNameBase + '_Mixing.png')
 	fig5.savefig(savePNG5)
-	print '>>Saving file %s' % savePNG5.split('/')[-1]
-	#savePNG6 = '/Users/briangreene/Desktop/%s_%s' % (saveNameBase, 'Wind')
-	savePNG6 = '%s%s_%s' % (dirName, saveNameBase, 'Wind')
+	print '>>Saving file %s' % savePNG5.split(os.sep)[-1]
+	savePNG6 = os.path.join(saveDirName, saveNameBase + '_Wind.png')
 	fig6.savefig(savePNG6)
-	print '>>Saving file %s' % savePNG6.split('/')[-1]
+	print '>>Saving file %s' % savePNG6.split(os.sep)[-1]
+	savePNG9 = os.path.join(saveDirName, saveNameBase + '_Static_Stability.png')
+	fig9.savefig(savePNG9)
+	print '>>Saving file %s' % savePNG9.split(os.sep)[-1]
 
 	print '>>Figures Saved!'
 elif s == 'n':
@@ -501,10 +382,13 @@ elif s == 'n':
 else:
 	print '>>How did you get here??'
 
+plt.pause(2)
+
 ## Quit when ready
-q = raw_input('>>Press enter to quit. ')
+#q = raw_input('>>Press enter to quit. ')
+q = []
 while q != '':
-    q = raw_input('>>>Press enter to quit. ')
+	q = raw_input('>>>Press enter to quit. ')
 
 plt.close('all')
 print 'Analysis Complete.'
