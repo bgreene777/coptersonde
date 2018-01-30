@@ -44,7 +44,7 @@ metpy, cmocean, geopy, mesonetgeoinfo.csv, Basemap
 '''
 Operating system and user agnostic
 '''
-user = wxtools.getUser(printos=True)
+user, isMac = wxtools.getUser(printos=True)
 sep = os.sep
 
 # Mission name: PBL Transition, CLOUDMAP, ISOBAR, etc.
@@ -56,7 +56,8 @@ myNextcloud = sep + os.path.join('Users', user, 'Nextcloud', 'thermo')
 if isMac:
     dataDirName = os.path.join(myNextcloud, 'data', mission)
 else:
-    dataDirName = os.path.join('Users')
+    dataDirName = os.path.join('Users', user, 'Desktop', 'CopterSonde_Scripts',
+        'solutions')
 
 # location of mesonet location csv
 mesocsv = os.path.join(myNextcloud, 'documentation', 'Mesonet', 'geoinfo.csv')
@@ -70,22 +71,21 @@ if isMac:
         'Coptersonde', mission, 'Figures')
 else:
     folderSaveFile = sep + os.path.join('Users', user, 'Desktop', 
-        'Coptersonde_scripts', 'RAOB') 
+        'CopterSonde_Scripts', 'RAOB') 
     folderSavePNG = sep + os.path.join('Users', user, 'Desktop', 
-        'Coptersonde_scripts', 'Figures')
+        'CopterSonde_Scripts', 'Figures')
 
 ##################################
 ## Setup and Raw File Selection ##
 ##################################
 
-# Ignore dumb warnings
+# Ignore common warnings
 warnings.filterwarnings("ignore",".*GUI is implemented.*")
 warnings.filterwarnings("ignore",".*mean of empty slice.*")
 warnings.filterwarnings("ignore",".*invalid value encountered in less.*")
 
 # If on PC, search for file in Desktop/Coptersonde_scripts/solutions/
 # Otherwise, look for data on Nextcloud
-
 if isMac:
     # Select file
     autofile = raw_input('>>Use latest CSV? y/n ')
@@ -115,35 +115,41 @@ if isMac:
             filename = askopenfilename(initialdir=dataDirName)
             root.destroy()
     else:
-        print 'No file selected!'
+        print '>>No file selected!'
 
-    fname = filename.rsplit('/', 1)[-1]
+    fname = filename.rsplit(sep, 1)[-1]
     print 'CSV file selected: %s' % fname
 elif not isMac:
     root = Tkinter.Tk()
     root.withdraw()
     root.update()
-    filename = askopenfilename(initialdir=)
-
-
-# Copter Number
-copterNum = fname[11]
-#copterNum = '1'
-
-# Ask if ppk
-dgpsFlag = raw_input('>>PPK? y/n ')
-while dgpsFlag != 'y' and dgpsFlag != 'n':
-    dgpsFlag = raw_input('>>PPK? y/n ')
-
-if dgpsFlag == 'y':
-    dgpsFlag = 1
-    ppkname = wxtools.findDGPSfile(filename)
-    print 'PPK file selected: %s' % ppkname.split('/')[-1]
-elif dgpsFlag == 'n':
-    dgpsFlag = 0
-    print 'No PPK. '
+    filename = askopenfilename(initialdir=dataDirName)
+    root.destroy()
 else:
-    print '>>>ERROR '
+    print '>>No file selected!'
+
+
+# Copter Number - search between end of 'Coptersonde' and '_Data'
+copterNum = fname[(fname.index('Coptersonde')+11):fname.index('_Data')]
+copterNumInt = int(copterNum)
+
+# Ask if ppk - skip for coptersonde V2
+if copterNumInt < 20:
+    dgpsFlag = raw_input('>>PPK? y/n ')
+    while dgpsFlag != 'y' and dgpsFlag != 'n':
+        dgpsFlag = raw_input('>>PPK? y/n ')
+
+    if dgpsFlag == 'y':
+        dgpsFlag = 1
+        ppkname = wxtools.findDGPSfile(filename)
+        print 'PPK file selected: {}'.format(ppkname.split(sep)[-1])
+    elif dgpsFlag == 'n':
+        dgpsFlag = 0
+        print 'No PPK. '
+    else:
+        print '>>>ERROR '
+else:
+    dgpsFlag = 0
 
 ######################
 ## Import DGPS Data ##
@@ -173,20 +179,14 @@ deltaZ = 10.
 # Automatically find max height
 if dgpsFlag:
     maxHeight = round(np.nanmax(alt_dgps_agl), -1) + deltaZ
-    print 'Maximum height AGL (PPK): %5.4f m' % np.nanmax(alt_dgps_agl)
+    print 'Maximum height AGL (PPK): {0:5.4f} m'.format(np.nanmax(alt_dgps_agl))
 else:
-    H = []
-    a = open(filename)
-    reader = csv.DictReader(a)
-    for line in reader:
-        H.append(float(line['Altitude']))
-
-    a.close()
-    print 'Maximum height AGL (copter): %5.4f m' % np.nanmax(H)
+    H = np.loadtxt(filename, skiprows=1, usecols=(4))
+    print 'Maximum height AGL (copter): {0:5.4f} m'.format(np.nanmax(H))
     maxHeight = round(np.nanmax(H), -1) + deltaZ
 
 nHeights = int(maxHeight / deltaZ)
-sampleHeights_m = np.linspace(10., maxHeight, num=nHeights)
+sampleHeights_m = np.linspace(deltaZ, maxHeight, num=nHeights)
 
 #################
 ## Import data ##
@@ -231,13 +231,16 @@ for i in range(len(dt_copter)):
 # isfindsite = raw_input('>>>Automatically find Mesonet site? y/n ')
 # while isfindsite != 'y' and isfindsite != 'n':
 #     isfindsite = raw_input('>>>Automatically find Mesonet site? y/n ')
-isfindsite = 'y'
+if mission == 'PBL Transition':
+    isfindsite = True
+else:
+    isfindsite = False
 
-if isfindsite == 'y':
+if isfindsite:
     meso = wxtools.findSite(lat[0], lon[0])
-    sitename = meso.split('/')[0]
-    sitelong = meso.split('/')[1]
-elif isfindsite == 'n':
+    sitename = meso.split(sep)[0]
+    sitelong = meso.split(sep)[1]
+elif not isfindsite:
     sitename = raw_input('>>>Please enter 4-digit site name: ')
     sitelong = sitename
 else:
@@ -259,6 +262,29 @@ RH1 = sc.medfilt(RH1, 3)
 RH2 = sc.medfilt(RH2, 3)
 RH3 = sc.medfilt(RH3, 3)
 RH4 = sc.medfilt(RH4, 3)
+
+########################
+# Check for empty data #
+########################
+if (np.count_nonzero(T1) < 1):
+    T1 = np.array([np.nan for i in T1])
+if (np.count_nonzero(T2) < 1):
+    T2 = np.array([np.nan for i in T2])
+if (np.count_nonzero(T3) < 1):
+    T3 = np.array([np.nan for i in T3])
+if (np.count_nonzero(T4) < 1):
+    T4 = np.array([np.nan for i in T4])
+
+#######################################
+# Check if temperatures are in C or K #
+#######################################
+
+if np.nanmean(T1) > 150.:
+    # if temps average over 150, then most definitely in K
+    T1 -= 273.15
+    T2 -= 273.15
+    T3 -= 273.15
+    T4 -= 273.15
 
 #####################
 ## Calculate Winds ##
@@ -284,7 +310,11 @@ for j in range(nVals):
     psi_deg[j] = np.arccos(R[2,2]) * 180./np.pi
     az_deg[j] = np.arctan2(R[1,2],R[0,2]) * 180./np.pi
 
-Speed_mps = 34.5 * np.sqrt(np.tan(psi_deg * np.pi/180.)) - 6.4
+if copterNumInt < 20:
+    Speed_mps = 34.5 * np.sqrt(np.tan(psi_deg * np.pi/180.)) - 6.4
+else:
+    Speed_mps = 1.0 * np.sqrt(np.tan(psi_deg * np.pi/180.)) - 0.0
+
 Direction_deg = az_deg
 Speed_mps[Speed_mps<0.] = np.nan
 
@@ -296,18 +326,21 @@ Direction_deg[iNeg] = Direction_deg[iNeg] + 360.
 ## Automatically Determine Starting Time ##
 ###########################################
 
-updown = raw_input('>>>Enter 1 for ascent or 2 for descent: ')
-if updown == '1':
+if mission == 'PBL Transition':
+    updown = raw_input('>>>Enter 1 for ascent or 2 for descent: ')
+    if updown == '1':
+        profup = 1
+        profdown = 0
+        print 'Selected: ascent'
+    elif updown == '2':
+        profup = 0
+        profdown = 1
+        print 'Selected: descent'
+    else:
+        print 'uhhhhh'
+else:
     profup = 1
     profdown = 0
-    print 'Selected: ascent'
-elif updown == '2':
-    profup = 0
-    profdown = 1
-    print 'Selected: descent'
-else:
-    print 'uhhhhh'
-
 
 t_copter = mpdates.date2num(dt_copter)
 
@@ -320,7 +353,7 @@ if profup:
         # Find time diff between copter and dgps
         timeMaxCopter = dt_copter[np.argmax(alt)]
         timeDiff = timeMax - timeMaxCopter
-        print 'Time offset: %5.2f seconds' % timeDiff.total_seconds()
+        print 'Time offset: {0:5.2f} seconds'.format(timeDiff.total_seconds())
 
         # Correct copter time to match dgps
         dt_copter = [time + timeDiff for time in dt_copter]
@@ -345,8 +378,8 @@ if profup:
     ax1.xaxis.set_major_locator(mpdates.MinuteLocator(interval=5))
     ax1.xaxis.set_major_formatter(mpdates.DateFormatter('%H:%M:%S'))
 
-    print 'Takeoff Time (UTC): %s' % timeTakeoff.isoformat(' ')
-    print 'Max Time (UTC): %s' % timeMax.isoformat(' ')
+    print 'Takeoff Time (UTC): {}'.format(timeTakeoff.isoformat(' '))
+    print 'Max Time (UTC): %s'.format(timeMax.isoformat(' '))
 
     plt.show(block=False)
 
@@ -359,7 +392,7 @@ if profdown:
         # Find time diff between copter and dgps
         timeMaxCopter = dt_copter[np.argmax(alt)]
         timeDiff = timeTakeoff - timeMaxCopter
-        print 'Time offset: %5.2f seconds' % timeDiff.total_seconds()
+        print 'Time offset: {0:5.2f} seconds'.format(timeDiff.total_seconds())
 
         # Correct copter time to match dgps
         dt_copter = [time + timeDiff for time in dt_copter]
@@ -385,18 +418,49 @@ if profdown:
     ax1.xaxis.set_major_locator(mpdates.MinuteLocator(interval=5))
     ax1.xaxis.set_major_formatter(mpdates.DateFormatter('%H:%M:%S'))
 
-    print 'Takeoff Time (UTC): %s' % timeTakeoff.isoformat(' ')
-    print 'End Time (UTC): %s' % timeEnd.isoformat(' ')
+    print 'Takeoff Time (UTC): {}'.format(timeTakeoff.isoformat(' '))
+    print 'End Time (UTC): {}'.format(timeEnd.isoformat(' '))
 
     plt.show(block=False)
 
 #########################
 ## Import Mesonet Data ##
 #########################
-mesoData = wxtools.getMesoData(timeTakeoff.year, timeTakeoff.month,
-    timeTakeoff.day, sitename)
-if mesoData.size == 0:
-    print 'No internet connection detected.'
+if mission == 'PBL Transition':
+    mesoData = wxtools.getMesoData(timeTakeoff.year, timeTakeoff.month,
+        timeTakeoff.day, sitename)
+    if mesoData.size == 0:
+        print 'No internet connection detected.'
+        RHmeso = np.nan
+        T2meso = np.nan
+        T9meso = np.nan
+        umeso = np.nan
+        vmeso = np.nan
+        pmeso = np.nan
+        Td2meso = np.nan
+        sradmeso = np.nan
+    else:
+        print 'Internet connection successful! Pulling Mesonet data...'
+        iMesoTime = wxtools.findClosestMesoTime(timeTakeoff)
+        minutes_meso = mesoData[0, iMesoTime]
+        dtmeso = datetime(timeTakeoff.year,timeTakeoff.month,timeTakeoff.day)+ \
+            timedelta(minutes=minutes_meso)
+        tmeso = mpdates.date2num(dtmeso)
+        minutes_meso_long = mesoData[0, :iMesoTime+1]
+        dtmeso_long = [datetime(timeTakeoff.year, timeTakeoff.month, 
+            timeTakeoff.day) + timedelta(minutes=iminutes)
+            for iminutes in minutes_meso_long]
+        tlongmeso = [mpdates.date2num(itime) for itime in dtmeso_long]
+
+        RHmeso = mesoData[1, iMesoTime]
+        T2meso = mesoData[2, iMesoTime]
+        T9meso = mesoData[3, iMesoTime]
+        umeso = mesoData[4, iMesoTime]
+        vmeso = mesoData[5, iMesoTime]
+        pmeso = mesoData[6, iMesoTime]
+        sradmeso = mesoData[7, :iMesoTime+1]
+        Td2meso = np.array(mcalc.dewpoint_rh(T2meso*units.degC, RHmeso / 100.))
+else:
     RHmeso = np.nan
     T2meso = np.nan
     T9meso = np.nan
@@ -405,27 +469,6 @@ if mesoData.size == 0:
     pmeso = np.nan
     Td2meso = np.nan
     sradmeso = np.nan
-else:
-    print 'Internet connection successful! Pulling Mesonet data...'
-    iMesoTime = wxtools.findClosestMesoTime(timeTakeoff)
-    minutes_meso = mesoData[0, iMesoTime]
-    dtmeso = datetime(timeTakeoff.year, timeTakeoff.month, timeTakeoff.day) + \
-        timedelta(minutes=minutes_meso)
-    tmeso = mpdates.date2num(dtmeso)
-    minutes_meso_long = mesoData[0, :iMesoTime+1]
-    dtmeso_long = [datetime(timeTakeoff.year, timeTakeoff.month, 
-        timeTakeoff.day) + timedelta(minutes=iminutes)
-        for iminutes in minutes_meso_long]
-    tlongmeso = [mpdates.date2num(itime) for itime in dtmeso_long]
-
-    RHmeso = mesoData[1, iMesoTime]
-    T2meso = mesoData[2, iMesoTime]
-    T9meso = mesoData[3, iMesoTime]
-    umeso = mesoData[4, iMesoTime]
-    vmeso = mesoData[5, iMesoTime]
-    pmeso = mesoData[6, iMesoTime]
-    sradmeso = mesoData[7, :iMesoTime+1]
-    Td2meso = np.array(mcalc.dewpoint_rh(T2meso * units.degC, RHmeso / 100.))
 
 #################################################
 ## Find indices for coptersonde and dgps files ##
@@ -629,8 +672,9 @@ w = np.multiply(RHmean / 100., ws * 1000.)
 if isRH:
     lclpres, lcltemp = mcalc.lcl(pres[0] * units.mbar, 
         Tmean[0] * units.degC, Td[0] * units.degC)
-    print 'LCL Pressure: %5.2f %s' % (lclpres.magnitude, lclpres.units)
-    print 'LCL Temperature: %5.2f %s' % (lcltemp.magnitude, lcltemp.units)
+    print 'LCL Pressure: {0:5.2f} {1}'.format(lclpres.magnitude, lclpres.units)
+    print 'LCL Temperature: {0:5.2f} {1}'.format(lcltemp.magnitude, 
+        lcltemp.units)
 
     # parcel profile
     # determine if there are points sampled above lcl
@@ -652,13 +696,13 @@ if isRH:
 
     # CAPE
     SBCAPE = wxtools.uavCAPE(Tmean * units.degC, prof, pres * units.hPa)
-    print 'Estimated SBCAPE: %4.2f %s' % (SBCAPE.magnitude, SBCAPE.units)
+    print 'Parcel Buoyancy: {0:4.2f} {1}'.format(SBCAPE.magnitude, SBCAPE.units)
 else:
     isbelowlcl = 0
 
 # Wind shear
 bulkshear = wind_kts[-3] - wind_kts[0]
-print '0-%d m Bulk Shear: %.0f kts' % (sampleHeights_m[-3], bulkshear)
+print '0-{0:.0f} m Bulk Shear: {1:.0f} kts' % (sampleHeights_m[-3], bulkshear)
 
 ######################
 ## Create SkewTLogP ##
@@ -706,7 +750,7 @@ skew.ax.set_yticks(np.arange(ymin,ymax+10,10))
 
 skew.ax.set_xlabel('Temperature ($^\circ$C)')
 skew.ax.set_ylabel('Pressure (hPa)')
-titleName = 'Coptersonde-%s %s UTC - %s' % (copterNum, 
+titleName = 'Coptersonde-{0} {1} UTC - {2}'.format(copterNum, 
     timeTakeoff.strftime('%d-%b-%Y %H:%M:%S'), sitename)
 skew.ax.set_title(titleName)
 
@@ -729,32 +773,43 @@ ax_hod.set_title('Hodograph (kts)')
 ax_hod.yaxis.set_ticklabels([])
 #ax_hod.set_xlabel('Wind Speed (kts)')
 
-# # Map - Oklahoma
-# llcrnrlat = 33.6
-# urcrnrlat = 37.2
-# llcrnrlon = -103.2
-# urcrnrlon = -94.2
-# ax_map = fig5.add_subplot(gs[2, 2:])
+# Finland Map - ISOBAR
+if mission == 'ISOBAR'
+    # llcrnrlat = 33.6
+    # urcrnrlat = 37.2
+    # llcrnrlon = -103.2
+    # urcrnrlon = -94.2
+    lllat = 55.34
+    urlat = 70.54
+    lat_0 = 65.
+    lon_0 = 24.
+    ax_map = fig5.add_subplot(gs[2, 2:])
 
-# m = Basemap(projection='merc', llcrnrlat=llcrnrlat, urcrnrlat=urcrnrlat, 
-#     llcrnrlon=llcrnrlon,urcrnrlon=urcrnrlon, lat_ts=20, resolution='l',
-#     ax=ax_map)
+    # m = Basemap(projection='merc', llcrnrlat=llcrnrlat, urcrnrlat=urcrnrlat, 
+    #     llcrnrlon=llcrnrlon,urcrnrlon=urcrnrlon, lat_ts=20, resolution='l',
+    #     ax=ax_map)
+    m = Basemap(width=1600000, height=900000, projection='lcc', resolution='l',
+        lat_1=lllat, lat_2=urlat, lat_0=lat_0, lon_0=lon_0)
 
-# print 'Basemap...'
-# m.drawcounties()
-# m.drawstates()
-# x,y = m(lon[0], lat[0])
-# plt.plot(x,y,'b.')
-# plt.text(x+40000, y-5000, sitelong, bbox=dict(facecolor='yellow', alpha=0.5))
+    print 'Basemap...'
+    m.drawcountries()
+    m.shadedrelief()
+    # m.drawcounties()
+    # m.drawstates()
+    x,y = m(lon[0], lat[0])
+    plt.plot(x, y, 'b.')
+    #plt.text(x+40000, y-5000, sitelong, bbox=dict(facecolor='yellow', alpha=0.5))
 
-# Solar radiation meteogram
-ax_rad = fig5.add_subplot(gs[2, 2:])
-plt.plot(tlongmeso[143:], sradmeso[143:], label='Solar Radiation (W m$^{-2}$)')
-plt.plot(tmeso, sradmeso[-1], 'r.', linewidth=2)
-ax_rad.xaxis.set_major_locator(mpdates.MinuteLocator(interval=60))
-ax_rad.xaxis.set_major_formatter(mpdates.DateFormatter('%H:%M'))
-ax_rad.yaxis.tick_right()
-ax_rad.legend(loc=0)
+# Solar radiation meteogram - PBL Transition
+if mission == 'PBL Transition'
+    ax_rad = fig5.add_subplot(gs[2, 2:])
+    plt.plot(tlongmeso[143:], sradmeso[143:], 
+        label='Solar Radiation (W m$^{-2}$)')
+    plt.plot(tmeso, sradmeso[-1], 'r.', linewidth=2)
+    ax_rad.xaxis.set_major_locator(mpdates.MinuteLocator(interval=60))
+    ax_rad.xaxis.set_major_formatter(mpdates.DateFormatter('%H:%M'))
+    ax_rad.yaxis.tick_right()
+    ax_rad.legend(loc=0)
 
 if isRH:
     # Convective parameter values
@@ -789,17 +844,17 @@ plt.show(block=False)
 ## Save csv and png ##
 ######################
 
-s = raw_input('>>>Save csv and figures? y/n ')
+s = raw_input('>>Save csv and figures? y/n ')
 while s != 'y' and s != 'n':
-    s = raw_input('>>>Save csv and figures? y/n ')
+    s = raw_input('>>Save csv and figures? y/n ')
 if s == 'y':
-    saveFileName = folderSaveFile + '%s/%s-OUUAS%s-%s.csv' % \
-        (timeTakeoff.strftime('%Y%m%d'), timeTakeoff.strftime('%Y%m%d_%H%M%S'),
-            copterNum, sitename)
+    saveFileName = '{0}-OUUAS{1}-{2}.csv'.format(
+        timeTakeoff.strftime('%Y%m%d_%H%M%S'), copterNum, sitename)
+    saveFilePath = os.path.join(folderSaveFile, saveFileName)
     headers = ('Lat', 'Lon', 'AltAGL(m)', 'p(hPa)', 'T(C)', 'Td(C)',\
         'RH(percent)', 'w(gKg-1)', 'Theta(K)', 'Speed(ms-1)', 'Dir(deg)')
-    fw = open(saveFileName,'wb')
-    writer = csv.writer(fw,delimiter=',')
+    fw = open(saveFilePath, 'wb')
+    writer = csv.writer(fw, delimiter=',')
     writer.writerow(headers)
     for i in range(nHeights):
         if (i == nHeights-1) & np.isnan(Tmean[i]):
@@ -812,14 +867,14 @@ if s == 'y':
                 round(wind[i], 2), round(direction[i], 2)) )
 
     fw.close()
-    print 'Finished saving %s' % saveFileName.split('/')[-1]
+    print 'Finished saving {0}'.format(saveFileName)
 
     # png
-    saveFileNamePNG = folderSavePNG + '%s/%s-OUUAS%s-%s.png' % \
-        (timeTakeoff.strftime('%Y%m%d'), timeTakeoff.strftime('%Y%m%d_%H%M%S'),
-            copterNum, sitename)
-    fig5.savefig(saveFileNamePNG)
-    print 'Finished saving %s' % saveFileNamePNG.split('/')[-1]
+    saveFileNamePNG = '{0}-OUUAS{1}-{2}.png'.format(
+        timeTakeoff.strftime('%Y%m%d_%H%M%S'), copterNum, sitename)
+    saveFilePathPNG = os.path.join(folderSavePNG, saveFileNamePNG)
+    fig5.savefig(saveFilePathPNG)
+    print 'Finished saving {0}'.format(saveFileNamePNG)
 
 elif s == 'n':
     print 'Files not saved. '
@@ -832,9 +887,9 @@ plt.show(block=False)
 ## Quit when ready ##
 #####################
 
-q = raw_input('>>>Press enter to quit. ')
+q = raw_input('>>Press enter to quit. ')
 while q != '':
-    q = raw_input('>>>Press enter to quit. ')
+    q = raw_input('>>Press enter to quit. ')
 
 plt.close('all')
 print 'Post Processing Complete.'
