@@ -5,7 +5,7 @@ import matplotlib.image as mpimg
 import matplotlib.gridspec as gridspec
 import matplotlib.dates as mpdates
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-#from mpl_toolkits.basemap import Basemap
+from mpl_toolkits.basemap import Basemap
 import numpy as np
 import csv
 import math
@@ -21,12 +21,13 @@ import warnings
 import cmocean
 import geopy.distance
 import wxtools
+import os
 
 #############
 ## Version ##
 #############
 '''
-Updated 11 November 2017
+Updated 30 January 2018
 Brian Greene
 University of Oklahoma
 For use with raw OU Coptersonde vertical profile data
@@ -35,27 +36,45 @@ For use with raw OU Coptersonde vertical profile data
 ## Required pacakges & files ##
 ###############################
 '''
-metpy, cmocean, geopy, mesonetgeoinfo.csv
+metpy, cmocean, geopy, mesonetgeoinfo.csv, Basemap
 '''
-#######################################
-## Change the following directories: ##
-#######################################
+######################
+## File Directories ##
+######################
 '''
-****** os filesep = '/' and windows filesp = '\\' ******
-****** this version formatted for mac os ******
+Operating system and user agnostic
 '''
+user = wxtools.user
+sep = os.sep
+if sep == '/':
+    isMac = True
+else:
+    isMac = False
+
+# Mission name: PBL Transition, CLOUDMAP, ISOBAR, etc.
+mission = 'ISOBAR'
+
 # nextcloud directory
-myNextcloud = '/Users/briangreene/Nextcloud/thermo/'
+myNextcloud = sep + os.path.join('Users', user, 'Nextcloud', 'thermo')
 # location of raw .csv and .pos files
-dataDirName = myNextcloud + 'data/PBL Transition/'
+dataDirName = os.path.join(myNextcloud, 'data', mission)
 # location of mesonet location csv
-mesocsv = myNextcloud + 'documentation/Mesonet/geoinfo.csv'
+mesocsv = os.path.join(myNextcloud, 'documentation', 'Mesonet', 'geoinfo.csv')
 # location of Logos.png
-logoName = myNextcloud + 'documentation/LogosHorizLores.png'
-# location to save csv output
-folderSaveFile = '/Users/briangreene/Documents/Coptersonde/KAEFS/Data/'
-# location to save png output
-folderSavePNG = '/Users/briangreene/Documents/Coptersonde/KAEFS/Figures/'
+logoName = os.path.join(myNextcloud, 'documentation', 'LogosHorizLores.png')
+# location to locally save csv and png output files
+if isMac:
+    folderSaveFile = sep + os.path.join('Users', user, 'Documents', 
+        'Coptersonde', mission, 'Data') + sep
+    folderSavePNG = sep + os.path.join('Users', user, 'Documents', 
+        'Coptersonde', mission, 'Figures') + sep
+elif not isMac:
+    folderSaveFile = sep + os.path.join('Users', user, 'Desktop', 
+        'Coptersonde_scripts', 'RAOB') + sep
+    folderSavePNG = sep + os.path.join('Users', user, 'Desktop', 
+        'Coptersonde_scripts', 'Figures') + sep
+else:
+    print '>>Error determining OS '
 
 ##################################
 ## Setup and Raw File Selection ##
