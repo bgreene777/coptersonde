@@ -30,6 +30,7 @@ Last edit: 29 January 2018
 # Ignore warnings
 warnings.filterwarnings("ignore", 
 	".*converting a masked element to nan.*")
+np.seterr(invalid='ignore')
 warnings.filterwarnings("ignore",
 	".*invalid value encountered in greater_equal.*")
 warnings.filterwarnings("ignore",
@@ -46,7 +47,8 @@ procDate = raw_input('>>Enter date of profiles (YYYYMMDD): ')
 procLoc = raw_input('>>Enter location: ')
 
 # First check if composite nc file exists
-dataDirName = os.sep + os.path.join('Users', os.getlogin(), 'Nextcloud',
+user, isMac = wxtools.getUser()
+dataDirName = os.sep + os.path.join('Users', user, 'Nextcloud',
 	'thermo', 'data', 'PBL Transition', procDate, procLoc, 'pp_nc')
 
 # Filename based off user input
