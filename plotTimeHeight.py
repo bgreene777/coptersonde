@@ -15,19 +15,17 @@ from metpy.constants import dry_air_gas_constant as Rd
 from metpy.constants import water_heat_vaporization as Lv
 from metpy.constants import dry_air_spec_heat_press as cp
 import warnings
+import wxtools
 
 '''
 Reads nc file of combined profiles
 Prompts user for date (YYYYMMDD) and location of profiles
 Brian Greene
 University of Oklahoma
-Last edit: 25 January 2018
+Last edit: 29 January 2018
 '''
 
 ## Required pacakges & files: cmocean
-## Change the following directories:
-# ****** os filesep = '/' and windows filesp = '\\' ******
-# ****** this version formatted for mac os ******
 
 # Ignore warnings
 warnings.filterwarnings("ignore", 
@@ -47,11 +45,22 @@ cp = float(cp.magnitude)
 procDate = raw_input('>>Enter date of profiles (YYYYMMDD): ')
 procLoc = raw_input('>>Enter location: ')
 
+# First check if composite nc file exists
 dataDirName = os.sep + os.path.join('Users', os.getlogin(), 'Nextcloud',
 	'thermo', 'data', 'PBL Transition', procDate, procLoc, 'pp_nc')
 
 # Filename based off user input
-fname = glob(os.path.join(dataDirName, "*all.nc"))[0] # string array
+fname = glob(os.path.join(dataDirName, "*all.nc")) # string array
+
+if len(fname) == 0:
+	# if this file does not exist, run csvdir_to_ncdir and collect_nc
+	print '>>nc files do not exist. Initializing csvdir_to_ncdir '
+	dataDircsv = os.path.join(dataDirName.rsplit(os.sep, 2)[0], 'pp_csv')
+	wxtools.csvdir_to_ncdir(dataDircsv + os.sep)
+	print '>>Initializing collect_nc '
+	wxtools.collect_nc(procDate, procLoc)
+else:
+	fname = fname[0]
 
 # Import nc file
 print '>>Reading file: %s' % fname.split(os.sep)[-1]
