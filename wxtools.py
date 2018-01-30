@@ -32,11 +32,27 @@ University of Oklahoma
 Various subroutines for use with OU Coptersonde to atuomate calculations
 '''
 
-############
-# Get User #
-############
+##############################
+# Determine OS, Get Username #
+##############################
 
-user = os.getlogin()
+def getUser(printos=False):
+	sep = os.sep
+	if sep == '/':
+		isMac = True
+		if printos:
+			print '>>OS determined: MacOS'
+		return os.getlogin()	
+	elif sep == '\\':
+		isMac = False
+		if printos:
+			print '>>OS determined: Windows'
+		return os.getenv('username')
+	else:
+		print '>>Error determining OS'
+		return ''
+
+user = getUser()
 
 #################
 ## Directories ##
