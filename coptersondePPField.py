@@ -86,7 +86,7 @@ warnings.filterwarnings("ignore",".*invalid value encountered in less.*")
 
 # If on PC, search for file in Desktop/Coptersonde_scripts/solutions/
 # Otherwise, look for data on Nextcloud
-if isMac:
+if mission == 'PBL Transition':
     # Select file
     autofile = raw_input('>>Use latest CSV? y/n ')
     while autofile != 'y' and autofile != 'n':
@@ -118,13 +118,16 @@ if isMac:
         print '>>No file selected!'
 
     fname = filename.rsplit(sep, 1)[-1]
-    print 'CSV file selected: %s' % fname
-elif not isMac:
+    print 'CSV file selected: {0}'.format(fname)
+elif mission == 'ISOBAR':
     root = Tkinter.Tk()
     root.withdraw()
     root.update()
     filename = askopenfilename(initialdir=dataDirName)
     root.destroy()
+
+    fname = filename.rsplit(sep, 1)[-1]
+    print 'CSV file selected: {0}'.format(fname)
 else:
     print '>>No file selected!'
 
@@ -181,7 +184,7 @@ if dgpsFlag:
     maxHeight = round(np.nanmax(alt_dgps_agl), -1) + deltaZ
     print 'Maximum height AGL (PPK): {0:5.4f} m'.format(np.nanmax(alt_dgps_agl))
 else:
-    H = np.loadtxt(filename, skiprows=1, usecols=(4))
+    H = np.loadtxt(filename, skiprows=1, usecols=(4,), delimiter=',')
     print 'Maximum height AGL (copter): {0:5.4f} m'.format(np.nanmax(H))
     maxHeight = round(np.nanmax(H), -1) + deltaZ
 
@@ -281,6 +284,7 @@ if (np.count_nonzero(T4) < 1):
 
 if np.nanmean(T1) > 150.:
     # if temps average over 150, then most definitely in K
+    print 'Converting from K to C...'
     T1 -= 273.15
     T2 -= 273.15
     T3 -= 273.15
@@ -379,7 +383,7 @@ if profup:
     ax1.xaxis.set_major_formatter(mpdates.DateFormatter('%H:%M:%S'))
 
     print 'Takeoff Time (UTC): {}'.format(timeTakeoff.isoformat(' '))
-    print 'Max Time (UTC): %s'.format(timeMax.isoformat(' '))
+    print 'Max Time (UTC): {}'.format(timeMax.isoformat(' '))
 
     plt.show(block=False)
 
@@ -461,6 +465,7 @@ if mission == 'PBL Transition':
         sradmeso = mesoData[7, :iMesoTime+1]
         Td2meso = np.array(mcalc.dewpoint_rh(T2meso*units.degC, RHmeso / 100.))
 else:
+    tmeso = np.nan
     RHmeso = np.nan
     T2meso = np.nan
     T9meso = np.nan
@@ -702,7 +707,8 @@ else:
 
 # Wind shear
 bulkshear = wind_kts[-3] - wind_kts[0]
-print '0-{0:.0f} m Bulk Shear: {1:.0f} kts' % (sampleHeights_m[-3], bulkshear)
+print '0-{0:.0f} m Bulk Shear: {1:.0f} kts'.format(sampleHeights_m[-3], 
+    bulkshear)
 
 ######################
 ## Create SkewTLogP ##
@@ -774,7 +780,7 @@ ax_hod.yaxis.set_ticklabels([])
 #ax_hod.set_xlabel('Wind Speed (kts)')
 
 # Finland Map - ISOBAR
-if mission == 'ISOBAR'
+if mission == 'ISOBAR':
     # llcrnrlat = 33.6
     # urcrnrlat = 37.2
     # llcrnrlon = -103.2
@@ -801,7 +807,7 @@ if mission == 'ISOBAR'
     #plt.text(x+40000, y-5000, sitelong, bbox=dict(facecolor='yellow', alpha=0.5))
 
 # Solar radiation meteogram - PBL Transition
-if mission == 'PBL Transition'
+if mission == 'PBL Transition':
     ax_rad = fig5.add_subplot(gs[2, 2:])
     plt.plot(tlongmeso[143:], sradmeso[143:], 
         label='Solar Radiation (W m$^{-2}$)')
@@ -893,11 +899,5 @@ while q != '':
 
 plt.close('all')
 print 'Post Processing Complete.'
-print '               ___________                   '
-print '              /    O      \\                 '
-print '<====>       /      U      \\       <====>   '
-print '  []________/_______________\\________[]     '
-print '           ||---------------||               '
-print '           ||               ||               '
-print '           ||               ||               '
+wxtools.print_copter()
 
