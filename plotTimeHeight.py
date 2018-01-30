@@ -55,10 +55,11 @@ fname = glob(os.path.join(dataDirName, "*all.nc")) # string array
 if len(fname) == 0:
 	# if this file does not exist, run csvdir_to_ncdir and collect_nc
 	print '>>nc files do not exist. Initializing csvdir_to_ncdir '
-	dataDircsv = os.path.join(dataDirName.rsplit(os.sep, 2)[0], 'pp_csv')
+	dataDircsv = os.path.join(dataDirName.rsplit(os.sep, 1)[0], 'pp_csv')
 	wxtools.csvdir_to_ncdir(dataDircsv + os.sep)
 	print '>>Initializing collect_nc '
 	wxtools.collect_nc(procDate, procLoc)
+	fname = glob(os.path.join(dataDirName, "*all.nc"))[0]
 else:
 	fname = fname[0]
 
