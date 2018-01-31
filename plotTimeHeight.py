@@ -356,7 +356,7 @@ while s != 'y' and s != 'n':
 if s == 'y':
 	# Save name
 	saveNameBase = df.date_str + '_' + df.location_short
-	saveDirName = os.sep + os.path.join('Users', os.getlogin(), 'Desktop', 
+	saveDirName = os.sep + os.path.join('Users', user, 'Desktop', 
 		saveNameBase)
 	# Check for existence of folder
 	if not os.path.exists(saveDirName):
