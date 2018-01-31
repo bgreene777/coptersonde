@@ -718,7 +718,7 @@ print '0-{0:.0f} m Bulk Shear: {1:.0f} kts'.format(sampleHeights_m[-3],
 ######################
 
 print 'Plotting...'
-fig5 = plt.figure(figsize=(10.125,9))
+fig5 = plt.figure(figsize=(9, 8))
 gs = gridspec.GridSpec(5, 4)
 skew = SkewT(fig5, rotation=20, subplot=gs[:, :2])
 
@@ -826,10 +826,11 @@ if isRH:
     plt.axis('off')
     datastr = ('LCL: %.0f hPa, %.0f$^\circ$C\n' + \
         'Parcel Buoyancy: %.0f J kg$^{-1}$\n' + \
-        '0-%.0f m bulk shear: %.0f kts\n' + \
+        #'0-%.0f m bulk shear: %.0f kts\n' + \
         '10 m T: %.0f$^\circ$C, Td: %.0f$^\circ$C') % \
         (lclpres.magnitude, lcltemp.magnitude,SBCAPE.magnitude, 
-            sampleHeights_m[-3], bulkshear, Tmean[0], Td[0])
+            #sampleHeights_m[-3], bulkshear, 
+            Tmean[0], Td[0])
     boxprops = dict(boxstyle='round', facecolor='none')
     ax_data.text(0.5, 0.95, datastr, transform=ax_data.transAxes, fontsize=14,
         va='top', ha='center', bbox=boxprops)
