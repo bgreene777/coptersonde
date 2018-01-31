@@ -22,7 +22,7 @@ Reads nc file of combined profiles
 Prompts user for date (YYYYMMDD) and location of profiles
 Brian Greene
 University of Oklahoma
-Last edit: 29 January 2018
+Last edit: 30 January 2018
 '''
 
 ## Required pacakges & files: cmocean
@@ -31,10 +31,6 @@ Last edit: 29 January 2018
 warnings.filterwarnings("ignore", 
 	".*converting a masked element to nan.*")
 np.seterr(invalid='ignore')
-warnings.filterwarnings("ignore",
-	".*invalid value encountered in greater_equal.*")
-warnings.filterwarnings("ignore",
-	".*invalid value encountered in true_divide.*")
 
 # Constants
 Rd = 1000. * Rd.magnitude
