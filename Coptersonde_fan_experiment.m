@@ -3,10 +3,10 @@ clear
 close all
 
 %% Import
-fpathSens = '/Users/briangreene/Desktop/Coptersonde1_Data_2018-01-26_18h44m29s.csv';
+fpathSens = '/Users/briangreene/Nextcloud/thermo/data/RILChamber/FanTest/Coptersonde1_Data_2018-01-26_18h44m29s.csv';
 sensData = csvread(fpathSens, 1, 1);
 
-load('/Users/briangreene/Desktop/00000017.BIN-595661.mat');
+load('/Users/briangreene/Nextcloud/thermo/data/RILChamber/FanTest/00000017.BIN-595661.mat');
 
 %% Assign
 T1 = sensData(:, 22) - 273.15;
