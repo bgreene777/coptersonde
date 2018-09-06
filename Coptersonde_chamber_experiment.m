@@ -3,19 +3,46 @@ clear
 close all
 
 %% User parameters
-testNum = 2;
+testNum = 3;
+anomaly = true;
+calib = true;
+range = 'all'; % all, beg, mid, rest
 
+%% Hard coded values
+% x limits
+if testNum == 2
+    if strcmp(range, 'all')
+        xlim_2 = [0 35];
+    elseif strcmp(range, 'beg')
+        xlim_2 = [0 15.5];
+    elseif strcmp(range, 'mid')
+        xlim_2 = [16 28.5];
+    elseif strcmp(range, 'rest')
+        xlim_2 = [12 35];
+    end
+else
+    % do nothing
+end
+
+% calibration
+if calib
+    off1 = -0.0765;
+    off2 = 0.149;
+else
+    off1 = 0;
+    off2 = 0;
+end
 %% Import
 % Copter
 %copData = csvread('Coptersonde1_Data_2017-07-18_16h30m13s.csv',1,1);
 if testNum == 2
-    copData = csvread('/Users/briangreene/Nextcloud/thermo/data/RILChamber/V2/Coptersonde1_Data_2017-09-21_14h09m53s.csv',1,1);
+    copData = csvread('/Users/briangreene/Nextcloud/Projects/RILChamber/V2/Coptersonde1_Data_2017-09-21_14h09m53s.csv',1,1);
 elseif testNum == 3
-    copData = csvread('/Users/briangreene/Nextcloud/thermo/data/RILChamber/V2/Coptersonde1_Data_2017-09-21_14h43m56s.csv',1,1);
+    copData = csvread('/Users/briangreene/Nextcloud/Projects/RILChamber/V2/Coptersonde1_Data_2017-09-21_14h43m56s.csv',1,1);
 end
 tCop = copData(:,1)/(24*60*60) + datenum(1970,1,1,0,0,0);
-T1 = copData(:,24);
-T2 = copData(:,25);
+T1 = copData(:,24) + off1;
+T2 = copData(:,25) + off2;
 RH1 = copData(:,14);
 RH2 = copData(:,15);
 RHT1 = copData(:,18);
@@ -23,21 +50,22 @@ RHT2 = copData(:,19);
 
 % Raw copter - iMet, Current
 if testNum == 2
-    iMet = load('/Users/briangreene/Nextcloud/thermo/data/RILChamber/V2/00000050.BIN-634998.mat', 'IMET');
-    CURR = load('/Users/briangreene/Nextcloud/thermo/data/RILChamber/V2/00000050.BIN-634998.mat', 'CURR');
+    iMet = load('/Users/briangreene/Nextcloud/Projects/RILChamber/V2/00000050.BIN-634998.mat', 'IMET');
+    CURR = load('/Users/briangreene/Nextcloud/Projects/RILChamber/V2/00000050.BIN-634998.mat', 'CURR');
 elseif testNum == 3
-    iMet = load('/Users/briangreene/Nextcloud/thermo/data/RILChamber/V2/00000051.BIN-360329.mat', 'IMET');
-    CURR = load('/Users/briangreene/Nextcloud/thermo/data/RILChamber/V2/00000051.BIN-360329.mat', 'CURR');
+    iMet = load('/Users/briangreene/Nextcloud/Projects/RILChamber/V2/00000051.BIN-360329.mat', 'IMET');
+    CURR = load('/Users/briangreene/Nextcloud/Projects/RILChamber/V2/00000051.BIN-360329.mat', 'CURR');
 end
-T1raw = iMet.IMET(:, 7);
-T2raw = iMet.IMET(:, 9);
+T1raw = iMet.IMET(:, 7) + off1;
+T2raw = iMet.IMET(:, 9) + off2;
 curr = CURR.CURR(:, 4);
+tImet = iMet.IMET(:, 2);
 
 % Motor position
 if testNum == 2
-    fid = fopen('/Users/briangreene/Nextcloud/thermo/data/RILChamber/V2/motor_Thu_Sep_21_14_20_33_2017.csv');
+    fid = fopen('/Users/briangreene/Nextcloud/Projects/RILChamber/V2/motor_Thu_Sep_21_14_20_33_2017.csv');
 elseif testNum == 3
-    fid = fopen('/Users/briangreene/Nextcloud/thermo/data/RILChamber/V2/motor_Thu_Sep_21_14_46_10_2017.csv');
+    fid = fopen('/Users/briangreene/Nextcloud/Projects/RILChamber/V2/motor_Thu_Sep_21_14_46_10_2017.csv');
 end
 motData = textscan(fid, '%f %s %s','headerlines',1,'Delimiter',',');
 fclose(fid);
@@ -58,18 +86,26 @@ end
 
 % Wind speed
 if testNum == 2
-    fid = fopen('/Users/briangreene/Nextcloud/thermo/data/RILChamber/V2/wind_Thu_Sep_21_14_20_33_2017.csv');
+    fid = fopen('/Users/briangreene/Nextcloud/Projects/RILChamber/V2/wind_Thu_Sep_21_14_20_33_2017.csv');
 elseif testNum == 3
-    fid = fopen('/Users/briangreene/Nextcloud/thermo/data/RILChamber/V2/wind_Thu_Sep_21_14_46_10_2017.csv');
+    fid = fopen('/Users/briangreene/Nextcloud/Projects/RILChamber/V2/wind_Thu_Sep_21_14_46_10_2017.csv');
 end
 winds = textscan(fid, '%s %f','headerlines',1,'Delimiter',',');
 fclose(fid);
 tWind = datenum(winds{1,1}(1:2:end),'ddd mmm dd HH:MM:SS yyyy') + datenum(0,0,0,5,0,0);
 speed = winds{1,2}(1:2:end);
 
+% import both speeds for testNum == 3
+if testNum == 3
+    fid = fopen('/Users/briangreene/Nextcloud/Projects/RILChamber/V2/wind_Thu_Sep_21_14_20_33_2017.csv');
+    winds2 = textscan(fid, '%s %f','headerlines',1,'Delimiter',',');
+    fclose(fid);
+    speed2 = winds2{1,2}(1:2:end);
+end
+
 % MM
 if testNum == 1
-    fid = fopen('/Users/briangreene/Nextcloud/thermo/data/RILChamber/SensorPlacementTest.csv');
+    fid = fopen('/Users/briangreene/Nextcloud/Projects/RILChamber/SensorPlacementTest.csv');
     mmText = textscan(fid, '%s %f %f %f %f %f %f %f %f %f %f %f %f %f %f %s %s %s %f %f %f %f %f %f','headerlines',4,'Delimiter',',');
     fclose(fid);
     mmtime = datenum(mmText{1,1},'mm/dd/yyyy HH:MM');
@@ -85,7 +121,7 @@ if testNum == 1
     mmTuav = mmText{1,8}(:);
     mmTenv = mmText{1,7}(:);
 else
-    fid = fopen('/Users/briangreene/Nextcloud/thermo/data/RILChamber/V2/NSSL data 9_21_2017_185745_obs.txt');
+    fid = fopen('/Users/briangreene/Nextcloud/Projects/RILChamber/V2/NSSL data 9_21_2017_185745_obs.txt');
     mmText = textscan(fid, '%f %s %f %f %f %f %f %f %f %f %f %f %f %s %s %s %s %s %f %f %f %f %f', 'Delimiter', ',');
     fclose(fid);
     mmtime = datenum(mmText{1, 2}, 'yyyy-mm-dd HH:MM:SS.fff');
@@ -144,45 +180,73 @@ m = length(T2raw);
 if testNum == 2
     argmax = 1846;
     argmaxraw = 2645;
-
 elseif testNum == 3
-    [min, argmax] = nanmax(T2);
-    [min2, argmaxraw] = nanmax(T2raw);
-end
-    
+    [~, argmax] = nanmax(T2);
+    [~, argmaxraw] = nanmax(T2raw);
+end 
 
 baseT = tCop(argmax);
-deltaT = datenum(0,0,0,0,0,0.15);
+deltaTrel = (tImet - tImet(argmaxraw)) / (1000 * 86400); % fraction of day
 tCopRaw = nan(m, 1);
 
 for i = 1:m
-    tCopRaw(i) = baseT - (argmaxraw - i) * deltaT;
+    tCopRaw(i) = baseT + deltaTrel(i);
 end
 tCurr = linspace(tCopRaw(1), tCopRaw(end), length(curr));
 imm = find(tCopRaw(1) < mmtime & mmtime < tCopRaw(end));
+tMMraw = mmtime(imm);
+
+%% Convert everything to relative times in min - mm booted up first
+offset = tMMraw(1);
+conversion = 1440; % 86400 s/day * 1 day/24 hr * 1 hr/60 min
+tCopRel = (tCopRaw - offset) * conversion;
+tMMrel = (tMMraw - offset) * conversion;
+tCurrRel = (tCurr - offset) * conversion;
+tWindRel = (tWind - offset) * conversion;
 
 if testNum == 2
-    tCurrOn = tCurr(7250);
-    tCurrOn1 = tCurr(4640);
-    tCurrOff = tCurr(18200);
-    tCurrOff1 = tCurr(5783);
-    ydash = [22.5, 24.5];
+    tCurrOn = tCurrRel(7250);
+    %tCurrOn = tCurrRel(7285);
+    %tCurrOn1 = tCurrRel(4640);
+    tCurrOn1 = tCurrRel(4750);
+    tCurrOff = tCurrRel(18200);
+    tCurrOff1 = tCurrRel(5783);
+    if anomaly
+        ydash = [-0.2, 1];
+    else
+        ydash = [22.5, 24.5];
+    end
 elseif testNum == 3
-    tCurrOn = tCurr(1526);
-    tCurrOff = tCurr(10226);
-    ydash = [23, 24.5];
+    tCurrOn = tCurrRel(1513);
+    tCurrOff = tCurrRel(10226);
+    if anomaly
+        ydash = [-.2, 0.8];
+    else
+        ydash = [23, 24.5];
+    end
 end
 
-% hold on
-% plot(tCopRaw, T2raw)
-% plot(tCop, T2)
-% hold off
+%% Correct for linearly increasing background temp
+% [~, iMMon] = min(abs(tMMrel - tCurrOn));
+% [~, iMMoff] = min(abs(tMMrel - tCurrOff));
 % 
-% figure
-% hold on
-% plot(tCopRaw, T2rawrun)
-% plot(tCop, T2run)
-% hold off
+% dTdt = (mmTenv(iMMoff) - mmTenv(iMMon)) / (tCurrOff - tCurrOn);
+% mmTenvCorr = mmTenv(imm) - dTdt * tMMrel;
+% mmTuavCorr = mmTuav(imm) - dTdt * tMMrel;
+% T1rawrunCorr = T1rawrun - dTdt * tCopRel;
+% T2rawrunCorr = T2rawrun - dTdt * tCopRel;
+
+%% Calculate departures from background temp to plot as anomalies
+% loop through all iMet temps, find nearest MM timestep, find difference
+T1anom = nan(length(tCopRel), 1);
+T2anom = nan(length(tCopRel), 1);
+for i = 1:length(tCopRel)
+    [~, iMMClose] = min(abs(tMMrel - tCopRel(i)));
+    T1anom(i) = T1rawrun(i) - mmTenv(imm(iMMClose));
+    T2anom(i) = T2rawrun(i) - mmTenv(imm(iMMClose));
+end
+
+mmTanom = mmTuav - mmTenv;
 
 %% Average across bins to plot versus distance
 % T1mean = nan(length(motPos),1);
@@ -239,18 +303,39 @@ end
 
 %% Plot
 ax = figure(1);
-ax.Position = [500 500 1400 700];
+ax.Position = [500 500 1440 810];
+
+left_color = [0 0 0];
+%right_color = [239/255 118/255 4/255];
+right_color = [73/255, 0/255, 146/255];
+set(ax,'defaultAxesColorOrder',[left_color; right_color]);
 yyaxis left
+
 hold on
-%h1 = plot(tCopRaw, T1rawrun, 'DisplayName', 'iMet Sensor 1');
-h2 = plot(tCopRaw, T2rawrun, 'Color', 'g', 'LineStyle', '-', 'DisplayName', 'iMet Sensor 2');
-h3 = plot(mmtime(imm), mmTuav(imm), 'Color', 'r', 'LineStyle', '-', 'DisplayName', 'NSSL Tfast');
-h4 = plot(mmtime(imm), mmTenv(imm), 'Color', 'k', 'LineStyle', '-', 'DisplayName', 'NSSL Background Temperature');
-line([tCurrOn, tCurrOn], ydash, 'Color', 'k', 'LineStyle', '--');
-line([tCurrOff, tCurrOff], ydash, 'Color', 'k', 'LineStyle', '--');
+if anomaly
+    h1 = plot(tCopRel, T1anom, 'Color', 'k', 'LineStyle', '-', 'DisplayName', 'iMet 1 - Below rwUAS', 'LineWidth', 1.5);
+    h2 = plot(tCopRel, T2anom, 'Color', [0, 0, 230/255], 'LineStyle', '-', 'DisplayName', 'iMet 2 - In Tube', 'LineWidth', 2.5);
+    h3 = plot(tMMrel, mmTanom(imm), 'Color', [230/255, 0, 0], 'LineStyle', '-', 'DisplayName', 'NSSL 1 - In Tube', 'LineWidth', 2.5);
+    lzero = line([0, ceil(tCopRel(end))], [0, 0], 'Color', 'k', 'LineStyle', '-', 'LineWidth', 2.5);
+    bx = gca;
+    bx.XAxis.MinorTickValues = min(bx.XAxis.TickValues):0.5:max(bx.XAxis.TickValues);
+    bx.YAxis(1).MinorTickValues = min(ydash):0.05:max(ydash);
+else
+    h1 = plot(tCopRel, T1rawrun, 'Color', 'k', 'LineStyle', '-', 'DisplayName', 'iMet 1 - Below rwUAS', 'LineWidth', 1.5);
+    h2 = plot(tCopRel, T2rawrun, 'Color', [0, 0, 230/255], 'LineStyle', '-', 'DisplayName', 'iMet 2 - In Tube', 'LineWidth', 2.5);
+    h3 = plot(tMMrel, mmTuav(imm), 'Color', [230/255, 0, 0], 'LineStyle', '-', 'DisplayName', 'NSSL 1 - In Tube', 'LineWidth', 2.5);
+    h4 = plot(tMMrel, mmTenv(imm), 'Color', 'k', 'LineStyle', ':', 'LineWidth', 3, 'DisplayName', 'NSSL 2 - Background');
+    bx = gca;
+    bx.XAxis.MinorTickValues = min(bx.XAxis.TickValues):0.5:max(bx.XAxis.TickValues);
+    bx.YAxis(1).MinorTickValues = min(ydash):0.1:max(ydash);
+end
+
+l1 = line([tCurrOn, tCurrOn], ydash, 'Color', [24/225 145/225 36/225], 'LineStyle', '--', 'LineWidth', 2.5, 'DisplayName', 'Rotors On');
+l2 = line([tCurrOff, tCurrOff], ydash, 'Color', [206/225 26/225 26/225], 'LineStyle', '--', 'LineWidth', 2.5, 'DisplayName', 'Rotors Off');
+
 if testNum == 2
-    line([tCurrOn1, tCurrOn1], ydash, 'Color', 'k', 'LineStyle', '--');
-    line([tCurrOff1, tCurrOff1], ydash, 'Color', 'k', 'LineStyle', '--');
+    l3 = line([tCurrOn1, tCurrOn1], ydash, 'Color', [24/225 145/225 36/225], 'LineStyle', '--', 'LineWidth', 2.5, 'DisplayName', 'Rotors On');
+    l4 = line([tCurrOff1, tCurrOff1], ydash, 'Color', [206/225 26/225 26/225], 'LineStyle', '--', 'LineWidth', 2.5, 'DisplayName', 'Rotors Off');
 end
 
 % h1 = plot(tCopRaw,T1rawrun(tWind(1) < tCopRaw & tCopRaw < tWind(end)), 'DisplayName', 'iMet Sensor 1');
@@ -259,54 +344,61 @@ end
 % h4 = plot(x_tmm,mmTenv(tWind(1) < mmtime & mmtime < tWind(end)),'Color','k','LineStyle','-','LineWidth',2, 'DisplayName', 'NSSL Background Temp');
 % plot([tip1start mount1start mount1end tip1end tip2start mount2start mount2end tip2end],ydash,'k--')
 hold off
-ylabel('Temperature(^oC)','FontSize',14)
-% annotate
-% annotation('textarrow',[0.195714285714286 0.237142857142857],...
-%     [0.749 0.704285714285714],'String',{'Begin Prop 1'});
-% annotation('textarrow',[0.337857142857143 0.351428571428571],...
-%     [0.161428571428571 0.181428571428571],'String',{'Begin Motor Mount 1'});
-% annotation('textarrow',[0.417142857142857 0.407142857142857],...
-%     [0.162857142857143 0.184285714285714],'String',{'End Motor Mount 1'});
-% annotation('textarrow',[0.48 0.520714285714286],...
-%     [0.873285714285714 0.844285714285714],'String',{'End Tip 1'});
-% annotation('textarrow',[0.606428571428571 0.567857142857143],...
-%     [0.873285714285714 0.844285714285714],'String',{'Begin Tip 2'});
-% annotation('textarrow',[0.663571428571429 0.681428571428571],...
-%     [0.165714285714286 0.194285714285714],'String',{'Begin Motor Mount 2'});
-% annotation('textarrow',[0.755 0.735],...
-%     [0.164285714285714 0.194285714285714],'String',{'End Motor Mount 2'});
-% annotation('textarrow',[0.82 0.847857142857143],...
-%     [0.866142857142857 0.845714285714286],'String',{'End Tip 2'});
-
-if testNum == 2
-    yyaxis right
-    hold on
-    h5 = plot(tWind, speed, 'DisplayName', 'Wind Speed');
-    %h6 = plot(tMot, xMot, 'DisplayName', 'Position', 'Color', 'k', 'LineStyle', '-');
-    hold off
-    ylim([0 10])
-    ylabel('Wind Speed (m/s) & Position (in)', 'FontSize', 14)
-elseif testNum == 3
-    yyaxis right
-    hold on
-    h6 = plot(tMot, xMot, 'DisplayName', 'Position', 'Color', 'k', 'LineStyle', '-');
-    hold off
-    ylim([0 10])
-    ylabel('Position (in)', 'FontSize', 14)
+if anomaly
+    ylabel('Temperature (^oC) Relative to NSSL Background Temperature','FontSize',22)
+else
+    ylabel('Temperature (^oC)','FontSize',22)
 end
-    
-ylim([0, 28])    
-h = get(gca,'Children');
-%xlim([min(h.XData), max(h.XData)])
-xlabel('Time UTC','FontSize',14)
-datetick('x','HH:MM:SS')
-
-
-title(sprintf('Coptersonde Sensor Placement Experiment %d', testNum), 'FontSize',16)
 grid on
+grid minor
+bx.GridAlpha = 0.75;
+bx.MinorGridAlpha = 0.5;
+set(bx, 'FontSize', 22);
 
 if testNum == 2
-    legend([h2 h3 h4 h5],'Location', 'northwest')
+    yyaxis right
+    hold on
+    h5 = plot(tWindRel, speed, 'Color', [73/255, 0/255, 146/255], 'DisplayName', 'Wind Speed', 'LineWidth', 2.5);
+    hold off
+    h5.Color(4) = 0.5;
+    ylim([0 10])
+    xlim(xlim_2)
+    ylabel('Wind Speed (m s^{-1})', 'FontSize', 22)
 elseif testNum == 3
-    legend([h1 h2 h3 h4 h6], 'Location', 'northwest')
+    yyaxis right
+    h6 = plot(tWindRel, speed2(1:length(tWindRel)), 'DisplayName', 'Winds from Test 1', 'Color', [73/255, 0/255, 146/255], 'LineWidth', 2, 'LineStyle', ':');
+    h6.Color(4) = 0.5;
+    ylim([0 10])
+    ylabel('Wind Speed (m s^{-1})', 'FontSize', 22)
+end
+
+if testNum == 2 || testNum == 3
+    ylim([0, 20])
+end
+xlabel('Time Elapsed (minutes)','FontSize',22)
+
+titleStr = {'', 'Wind Probe in Tube', 'No Wind Probe'};
+%title(sprintf('Coptersonde Sensor Placement Experiment, %s', titleStr{testNum}), 'FontSize', 32)
+
+% legend
+if anomaly
+    if testNum == 2
+        leg = legend([h1 h2 h3 h5 l1 l2]);
+        leg.Location = 'northwest';
+        leg.FontSize = 20;
+    elseif testNum == 3
+        leg = legend([h1 h2 h3 h6 l1 l2]);
+        leg.Location = 'northwest';
+        leg.FontSize = 20;
+    end
+else
+    if testNum == 2
+        leg = legend([h1 h2 h3 h4 h5 l1 l2]);
+        leg.Location = 'northwest';
+        leg.FontSize = 20;
+    elseif testNum == 3
+        leg = legend([h1 h2 h3 h4 h6 l1 l2]);
+        leg.Location = 'northwest';
+        leg.FontSize = 20;
+    end
 end

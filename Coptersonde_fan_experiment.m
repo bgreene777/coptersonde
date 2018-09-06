@@ -45,12 +45,12 @@ ax = figure(1);
 ax.Position = [500 500 1440 810];
 
 h1 = plot(tRel, T1, 'Color', 'k', 'LineWidth', 1.5, ...
-    'DisplayName', 'iMet Temperature 1');
+    'DisplayName', 'iMet 1');
 hold on
 h2 = plot(tRel, T3, 'Color', 'r', 'LineWidth', 1.5, ...
-    'DisplayName', 'iMet Temperature 2');
+    'DisplayName', 'iMet 2');
 h3 = plot(tRel, T4, 'Color', 'b', 'LineWidth', 1.5, ...
-    'DisplayName', 'iMet Temperature 3');
+    'DisplayName', 'iMet 3');
 
 lOn1 = line([tOn1, tOn1], ydash, 'Color', [24/225 145/225 36/225], ...
     'LineStyle', '--', 'LineWidth', 2.5, 'DisplayName', 'Rotors On');

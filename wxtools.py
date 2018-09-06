@@ -552,16 +552,18 @@ def findStart(vertSpdRaw, altRaw, timeRaw):
 	'''
 	# only look at first half of flight while hovering (below 15 m)
 	i = np.argmax(altRaw)
-	ii = np.where((altRaw[:i] > 8.) & (altRaw[:i] < 15.))
-	althov = altRaw[ii]
-	vspdhov = vertSpdRaw[ii]
-	timehov = timeRaw[ii]
-	# cut in half to only look at hovering -> ascent portion
-	althov = althov[len(althov)/2:]
-	vspdhov = vspdhov[len(vspdhov)/2:]
-	timehov = timehov[len(timehov)/2:]
-	iii = np.where(vspdhov[len(vspdhov)/2:] > 1.)[0][0] - 5
-	return mpdates.num2date(timehov[iii])
+	# ii = np.where((altRaw[:i] > 8.) & (altRaw[:i] < 15.))
+	ii = np.where(altRaw[:i] > 4.)[0]
+	return mpdates.num2date(timeRaw[ii[0]])
+	# althov = altRaw[ii]
+	# vspdhov = vertSpdRaw[ii]
+	# timehov = timeRaw[ii]
+	# # cut in half to only look at hovering -> ascent portion
+	# althov = althov[len(althov)/2:]
+	# vspdhov = vspdhov[len(vspdhov)/2:]
+	# timehov = timehov[len(timehov)/2:]
+	# iii = np.where(vspdhov[len(vspdhov)/2:] > 1.)[0][0] - 5
+	# return mpdates.num2date(timehov[iii])
 
 def findEnd(vertSpdRaw, altRaw, timeRaw):
 	'''
